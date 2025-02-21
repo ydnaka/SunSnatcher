@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 const scene = new THREE.Scene();
+const sky_texture = new THREE.TextureLoader().load( "textures/background.png" );
+scene.background = sky_texture;
+scene.backgroundIntensity = 0.2;
 
 //THREE.PerspectiveCamera( fov angle, aspect ratio, near depth, far depth );
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -187,7 +190,7 @@ function animate() {
 	//Camera positioning
 	if (pressedKeys[4]) { hakkunAngle -= 0.02; }
 	if (pressedKeys[5]) { hakkunAngle += 0.02; }
-	camera.position.set(hakkunX + -6*Math.sin(hakkunAngle), hakkunY + 3, hakkunZ + 6*Math.cos(hakkunAngle));
+	camera.position.set(hakkunX + -7*Math.sin(hakkunAngle), hakkunY + 2, hakkunZ + 7*Math.cos(hakkunAngle));
 	controls.target.set(hakkunX, hakkunY, hakkunZ);
 	
 	//WASD press handling:
