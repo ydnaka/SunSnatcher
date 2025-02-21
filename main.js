@@ -169,9 +169,13 @@ let hakkunAngle = 0;
 let hakkunXV = 0; 
 let hakkunZV = 0;
 let hakkunYV = 0; //vertical velocity
+let isJumping = false;
+let onGround = false;
+const gravity = 0.02;
+const jumpVelocity = 0.4;
 //0=W, 1=A, 2=S, 3=D, 4=Q, 5=E
 let pressedKeys = [false, false, false, false, false, false];
-const hakkunA = 0.003; //vertical acceleration
+//const hakkunA = 0.003; //vertical acceleration
 
 
 function createBlock(material, x, y, z){
@@ -204,13 +208,23 @@ function animate() {
     controls.update();
 
 	//Gravity: (WIP, the ground is currently hardcoded)
-	if (hakkunY - (hakkunYV + hakkunA) > 0){
-		hakkunYV += hakkunA;
-		hakkunY -= hakkunYV;
-	}
-	else {
-		hakkunYV = 0;
-	}
+    if (!onGround) {
+        hakkunYV -= gravity;
+        hakkunY += hakkunYV;
+    }
+
+    if (hakkunY <= 0) {
+        hakkunY = 0;
+        hakkunYV = 0;
+        onGround = true;
+        isJumping = false;
+    }
+
+    if (pressedKeys[4] && onGround) {
+        isJumping = true;
+        onGround = false;
+        hakkunYV = jumpVelocity;
+    }
 	
 	//Camera positioning
 	if (pressedKeys[4]) { hakkunAngle -= 0.02; }
@@ -238,8 +252,8 @@ function animate() {
 	}
 	
 	//Horizontal movement:
-	hakkunX += hakkunXV;
-	hakkunZ += hakkunZV;
+    hakkunX += hakkunXV;
+    hakkunZ += hakkunZV;
 	
 	//Hakkun body parts positioning:
 	HakkunLight.position.set(hakkunX, hakkunY + 0.7, hakkunZ);
@@ -314,9 +328,11 @@ function onKeyPress(event) {
 			pressedKeys[3] = true;
 			break;
 		case ' ':
-			if (hakkunY - (hakkunYV + hakkunA) <= 0){
-				hakkunYV = -0.2;
-			}
+            if (onGround) {
+                isJumping = true;
+                onGround = false;
+                hakkunYV = jumpVelocity;
+            }
 			break;
 		case 'q':
 			pressedKeys[4] = true;
