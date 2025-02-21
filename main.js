@@ -30,7 +30,6 @@ scene.add(xAxis);
 scene.add(yAxis);
 scene.add(zAxis);
 
-
 // Setting up the lights
 
 /*const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -61,9 +60,70 @@ const sun_material = new THREE.MeshBasicMaterial({
     color: 0xff8800, // orange-ish color
 });
 
-//Blocks have a size of 1x1x1
-const l = 0.5
-const cube_geometry = new THREE.BoxGeometry(1, 1, 1);
+//Blocks have a size of 1.2x1.2x1.2
+const l = 0.6;
+const cube_geometry = new THREE.BoxGeometry(2*l, 2*l, 2*l);
+
+// Wireframe cube geometry
+const wirecube_vertices = new Float32Array([
+	// Front face
+    -l, -l,  l,
+     l, -l,  l,
+     l, -l,  l,
+     l,  l,  l,
+     l,  l,  l,
+    -l,  l,  l,
+    -l,  l,  l,
+	-l, -l,  l,
+    // Left face
+    -l, -l, -l,
+    -l, -l,  l,
+	-l, -l,  l,
+    -l,  l,  l,
+    -l,  l,  l,
+	-l,  l, -l,
+	-l,  l, -l,
+	-l, -l, -l,
+    // Top face
+	-l,  l,  l,
+	 l,  l,  l,
+	 l,  l,  l,
+	 l,  l, -l,
+	 l,  l, -l,
+	-l,  l, -l,
+	-l,  l, -l,
+	-l,  l,  l,
+    // Bottom face
+	-l, -l, -l,
+	 l, -l, -l,
+	 l, -l, -l,	
+	 l, -l,  l,
+	 l, -l,  l,
+	-l, -l,  l,
+	-l, -l,  l,
+	-l, -l, -l,
+    // Right face
+	 l, -l,  l,
+	 l, -l, -l,
+	 l, -l, -l,
+	 l,  l, -l,
+	 l,  l, -l,
+	 l,  l,  l,
+	 l,  l,  l,
+	 l, -l,  l,
+     // Back face
+	 l, -l, -l,
+	-l, -l, -l,
+	-l, -l, -l,
+	-l,  l, -l,
+	-l,  l, -l,
+	 l,  l, -l,
+	 l,  l, -l,
+	 l, -l, -l
+]);
+
+const wirecube_geometry = new THREE.BufferGeometry();
+wirecube_geometry.setAttribute( 'position', new THREE.BufferAttribute( wirecube_vertices, 3 ) );
 
 const level_plane_geometry = new THREE.PlaneGeometry(100,100);
 
@@ -73,7 +133,7 @@ const sun_wire_geometry = new THREE.TetrahedronGeometry(1);
 //Define Hakkun model geometry (NOT DONE)
 const hakkun_head_geometry = new THREE.SphereGeometry(0.5, 6, 6);
 const hakkun_body_geometry = new THREE.CapsuleGeometry(0.35, 0.5, 2, 8);
-
+ 
 //Hakkun slightly lights up his surroundings
 const HakkunLight = new THREE.PointLight(0xffffff, 0.5, 100);
 scene.add(HakkunLight);
@@ -98,7 +158,7 @@ level.material.color.setRGB(0,1,0);
 //Sun shards: (at most 3 in one level)
 let sunShard = new THREE.Mesh(sun_shard_geometry, sun_material);
 let sunWire = new THREE.LineSegments(sun_wire_geometry);
-let sunLight = new THREE.PointLight(0xffff00, 50, 200);
+let sunLight = new THREE.PointLight(0xffffaa, 50, 200);
 sunShard.matrixAutoUpdate = false;
 sunWire.matrixAutoUpdate = false;
 scene.add(sunShard);
@@ -172,15 +232,11 @@ for (let i = 0; i < cubes.length; i++) {
 
 let animation_time = 0;
 let delta_animation_time;
-//let rotation_angle;
 const clock = new THREE.Clock();
 
-//const MAX_ANGLE = 10 * Math.PI/180
-//const T = 2
-
-let hakkunX = 0;
+let hakkunX = 2;
 let hakkunY = 4;
-let hakkunZ = 0;
+let hakkunZ = 12;
 let hakkunAngle = 0;
 let hakkunXV = 0; //horizontal velocity
 let hakkunZV = 0;
@@ -189,7 +245,22 @@ let hakkunYV = 0; //vertical velocity
 let pressedKeys = [false, false, false, false, false, false];
 const hakkunA = 0.003; //vertical acceleration
 
-let shardPos = [20, 2, 20]; //sun shard position
+const shardPos = [1, 4, 3]; //sun shard position
+
+function createBlock(material, x, y, z){
+       const cube = new THREE.Mesh(cube_geometry, material);
+       cube.position.set(x, y, z)
+       scene.add(cube);
+       return cube;
+}
+
+const yellowblock = createBlock(yellow_material, 0, 0.6, 0);
+const redblock = createBlock(red_material, 5, 0.6, 3);
+const blueblock = createBlock(blue_material, -2, 0.6, 4);
+const block_wire = new THREE.LineSegments( wirecube_geometry );
+block_wire.position.set(-4 , 0.61, -1);
+scene.add(block_wire);
+
 function animate() {
     
 	renderer.render( scene, camera );
@@ -197,11 +268,7 @@ function animate() {
 	
 	// Animation time
 	delta_animation_time = clock.getDelta();
-	// The animation time only advances when still is false
-	//if (!still) {
-		animation_time += delta_animation_time;
-	//}
-	//rotation_angle = MAX_ANGLE * (Math.sin(animation_time * 2 * Math.PI / T) + 1) / 2;
+	animation_time += delta_animation_time;
 	
 	//Gravity: (WIP, the ground is currently hardcoded)
 	if (hakkunY - (hakkunYV + hakkunA) > 0){
@@ -248,9 +315,6 @@ function animate() {
 	hakkun_body_wire.position.set(hakkunX, hakkunY + 0.6, hakkunZ);
 	
 	//Sun shard animation
-	
-	//sunShard.position.set(shardPos[0], shardPos[1], shardPos[2]);
-	//sunWire.position.set(shardPos[0], shardPos[1], shardPos[2]);
 	sunLight.position.set(shardPos[0], shardPos[1], shardPos[2]);
 	let model_transformation = new THREE.Matrix4();
 	model_transformation.identity();
@@ -265,6 +329,13 @@ function animate() {
 	model_transformation.premultiply(rotationMatrixY(-animation_time));
 	model_transformation.premultiply(translationMatrix(shardPos[0], shardPos[1] - 0.1*Math.cos(animation_time), shardPos[2]));
 	sunWire.matrix.copy(model_transformation);
+	
+	//Oscillate blocks
+	yellowblock.position.x = Math.sin(-animation_time * 2) * 2;
+    yellowblock.position.y = 2.6 + Math.sin(animation_time * 2) * 2;
+    redblock.position.y = 2.6 + (Math.sin(-animation_time * 2)) * 2;
+    blueblock.position.x = Math.sin(animation_time * 2) * 3;
+		
 	/*
     
 	//(sin(x) + 1) / 2 makes a sin function that oscillates between 0 and 1
@@ -325,7 +396,7 @@ function onKeyPress(event) {
 			break;
 		case ' ':
 			if (hakkunY - (hakkunYV + hakkunA) <= 0){
-				hakkunYV = -0.2;
+				hakkunYV = -0.13;
 			}
 			break;
 		case 'q':
