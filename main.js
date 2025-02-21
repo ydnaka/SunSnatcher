@@ -167,6 +167,25 @@ scene.add(sunLight);
 
 //const line = new THREE.LineSegments( wireframe_geometry );
 
+const colors = [0xff0000, 0xffff00, 0x0000ff];
+const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+const potBodyGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 32);
+const potRimGeometry = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 32);
+const potMaterial = new THREE.MeshBasicMaterial({ color: randomColor });
+const potBody = new THREE.Mesh(potBodyGeometry, potMaterial);
+const potRim = new THREE.Mesh(potRimGeometry, potMaterial);
+
+potRim.position.y = 0.35;
+
+const pot = new THREE.Group();
+pot.add(potBody);
+pot.add(potRim);
+
+pot.position.set(0, 0, 3);
+
+scene.add(pot);
+
 //Transformation matrices:
 function translationMatrix(tx, ty, tz) {
 	return new THREE.Matrix4().set(
@@ -241,6 +260,11 @@ let hakkunAngle = 0;
 let hakkunXV = 0; //horizontal velocity
 let hakkunZV = 0;
 let hakkunYV = 0; //vertical velocity
+let isJumping = false;
+let onGround = false;
+const gravity = 0.02;
+const gravity1 = 0.004;
+const jumpVelocity = 0.5;
 //0=W, 1=A, 2=S, 3=D, 4=Q, 5=E
 let pressedKeys = [false, false, false, false, false, false];
 const hakkunA = 0.003; //vertical acceleration
@@ -263,6 +287,89 @@ scene.add(block_wire);
 
 let musicStarted = false;
 
+let block_wire_mesh = new THREE.Mesh(wirecube_geometry, potMaterial.color.getHex());
+
+//Not working yet.
+// function switchToMesh() {
+//     scene.remove(block_wire);
+//     scene.add(block_wire_mesh);
+// }
+
+function checkProximityAndAbsorbColor() {
+    const distanceThreshold = 0.5;
+    const potPosition = pot.position;
+    const distance = Math.sqrt(
+        Math.pow(hakkunX - potPosition.x, 2) +
+        Math.pow(hakkunY - potPosition.y, 2) +
+        Math.pow(hakkunZ - potPosition.z, 2)
+    );
+
+    if (distance < distanceThreshold) {
+        const potTopY = pot.position.y + 0.4;
+        if (hakkunY <= potTopY) {
+            hakkunY = potTopY; 
+            hakkunYV = 0;
+            onGround = true;
+            isJumping = false;
+        }
+		if (pressedKeys[7]) {
+			const absorbedColor = potMaterial.color.getHex();
+			hakkun_head_wire.material.color.setHex(absorbedColor);
+			hakkun_body_wire.material.color.setHex(absorbedColor);
+		}
+    }
+	else {
+        if (hakkunY > 0) {
+            hakkunYV -= gravity;
+            hakkunY += hakkunYV;
+        }
+		else {
+            hakkunY = 0;
+            hakkunYV = 0;
+            onGround = true;
+            isJumping = false;
+        }
+    }
+
+}
+
+function checkProximityAndInjectColor() {
+    const distanceThreshold = 0.5;
+    const blockPosition = block_wire.position;
+    const distance = Math.sqrt(
+        Math.pow(hakkunX - blockPosition.x, 2) +
+        Math.pow(hakkunY - blockPosition.y, 2) +
+        Math.pow(hakkunZ - blockPosition.z, 2)
+    );
+
+    if (distance < distanceThreshold) {
+        const blockTopY = blockPosition.y + 0.5;
+        if (hakkunY <= blockTopY  && hakkunYV <= 0) {
+            hakkunY = blockTopY;
+            hakkunYV = 0;
+            onGround = true;
+            isJumping = false;
+        }
+		if (pressedKeys[8]) {
+			const injectedColor = potMaterial.color.getHex();
+			block_wire.material.color.set(injectedColor);
+			//switchToMesh();
+		}
+    }
+	else {
+        if (hakkunY > 0) {
+            hakkunYV -= gravity;
+            hakkunY += hakkunYV;
+        }
+		else {
+            hakkunY = 0;
+            hakkunYV = 0;
+            onGround = true;
+            isJumping = false;
+        }
+    }
+}
+
 function animate() {
     
 	renderer.render( scene, camera );
@@ -273,14 +380,34 @@ function animate() {
 	animation_time += delta_animation_time;
 	
 	//Gravity: (WIP, the ground is currently hardcoded)
-	if (hakkunY - (hakkunYV + hakkunA) > 0){
-		hakkunYV += hakkunA;
-		hakkunY -= hakkunYV;
-	}
-	else {
-		hakkunYV = 0;
-	}
-		
+	// if (hakkunY - (hakkunYV + hakkunA) > 0){
+	// 	hakkunYV += hakkunA;
+	// 	hakkunY -= hakkunYV;
+	// }
+	// else {
+	// 	hakkunYV = 0;
+	// }
+	if (!onGround) {
+        hakkunYV -= gravity1;
+        hakkunY += hakkunYV;
+    }
+
+    if (hakkunY <= 0) {
+        hakkunY = 0;
+        hakkunYV = 0;
+        onGround = true;
+        isJumping = false;
+    }
+
+    if (pressedKeys[6] && onGround) {
+        isJumping = true;
+        onGround = false;
+        hakkunYV = jumpVelocity;
+    }
+
+	const positionInfo = document.getElementById("positionInfo");
+    positionInfo.innerHTML = `Position: X: ${hakkunX.toFixed(2)}, Y: ${hakkunY.toFixed(2)}, Z: ${hakkunZ.toFixed(2)}`;
+	 
 	//TODO - allow orbit controls later
 	//Camera positioning
 	if (pressedKeys[4]) { hakkunAngle -= 0.02; }
@@ -332,6 +459,9 @@ function animate() {
 	hakkun_head_wire.position.set(hakkunX, hakkunY + 1.6, hakkunZ);
 	hakkun_body_wire.position.set(hakkunX, hakkunY + 0.6, hakkunZ);
 	
+	checkProximityAndAbsorbColor();
+	checkProximityAndInjectColor();
+
 	//Sun shard animation
 	sunLight.position.set(shardPos[0], shardPos[1], shardPos[2]);
 	let model_transformation = new THREE.Matrix4();
@@ -413,9 +543,16 @@ function onKeyPress(event) {
 			pressedKeys[3] = true;
 			break;
 		case ' ':
-			if (hakkunY - (hakkunYV + hakkunA) <= 0){
-				hakkunYV = -0.13;
-			}
+			// if (hakkunY - (hakkunYV + hakkunA) <= 0){
+			// 	hakkunYV = -0.13;
+			// }
+			// break;
+			if (onGround) {
+                isJumping = true;
+                onGround = false;
+                hakkunYV = jumpVelocity;
+            }
+			pressedKeys[6]= true;
 			break;
 		case 'q':
 			pressedKeys[4] = true;
@@ -423,6 +560,12 @@ function onKeyPress(event) {
 		case 'e':
 			pressedKeys[5] = true;
 			break;
+		case 'c':
+			pressedKeys[7] = true;
+			break;
+		case 'x':
+			pressedKeys[8] = true;
+			break;	
 		default:
 	console.log(`Key ${event.key} pressed`);
 	}
@@ -441,6 +584,9 @@ function onKeyRelease(event) {
 			break;
 		case 'd':
 			pressedKeys[3] = false;
+			break;
+		case ' ':
+			pressedKeys[6] = false;
 			break;
 		case 'q':
 			pressedKeys[4] = false;
