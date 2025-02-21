@@ -33,10 +33,10 @@ scene.add(zAxis);
 
 // Setting up the lights
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+/*const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(0.5, .0, 1.0).normalize();
 scene.add(directionalLight);
-
+*/ 
 const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
 scene.add(ambientLight);
 
@@ -57,12 +57,18 @@ const grass_material = new THREE.MeshPhongMaterial({
     color: 0x00ff00, // Green color
     shininess: 100   
 });
+const sun_material = new THREE.MeshBasicMaterial({
+    color: 0xff8800, // orange-ish color
+});
 
 //Blocks have a size of 1x1x1
 const l = 0.5
 const cube_geometry = new THREE.BoxGeometry(1, 1, 1);
 
 const level_plane_geometry = new THREE.PlaneGeometry(100,100);
+
+const sun_shard_geometry = new THREE.OctahedronGeometry();
+const sun_wire_geometry = new THREE.TetrahedronGeometry(1);
 
 //Define Hakkun model geometry (NOT DONE)
 const hakkun_head_geometry = new THREE.SphereGeometry(0.5, 6, 6);
@@ -88,6 +94,16 @@ level.matrixAutoUpdate = false;
 level.matrix.copy(rotationMatrixX(3*Math.PI/2));
 scene.add(level);
 level.material.color.setRGB(0,1,0);
+
+//Sun shards: (at most 3 in one level)
+let sunShard = new THREE.Mesh(sun_shard_geometry, sun_material);
+let sunWire = new THREE.LineSegments(sun_wire_geometry);
+let sunLight = new THREE.PointLight(0xffff00, 50, 200);
+sunShard.matrixAutoUpdate = false;
+sunWire.matrixAutoUpdate = false;
+scene.add(sunShard);
+scene.add(sunWire);
+scene.add(sunLight);
 
 //const line = new THREE.LineSegments( wireframe_geometry );
 
@@ -153,31 +169,40 @@ for (let i = 0; i < cubes.length; i++) {
 	model_transformation.premultiply(T2);
 }
 */
-/*
+
 let animation_time = 0;
 let delta_animation_time;
-let rotation_angle;
+//let rotation_angle;
 const clock = new THREE.Clock();
 
-const MAX_ANGLE = 10 * Math.PI/180
-const T = 2
-*/
+//const MAX_ANGLE = 10 * Math.PI/180
+//const T = 2
+
 let hakkunX = 0;
 let hakkunY = 4;
 let hakkunZ = 0;
 let hakkunAngle = 0;
-let hakkunXV = 0; 
+let hakkunXV = 0; //horizontal velocity
 let hakkunZV = 0;
 let hakkunYV = 0; //vertical velocity
 //0=W, 1=A, 2=S, 3=D, 4=Q, 5=E
 let pressedKeys = [false, false, false, false, false, false];
 const hakkunA = 0.003; //vertical acceleration
 
+let shardPos = [20, 2, 20]; //sun shard position
 function animate() {
     
 	renderer.render( scene, camera );
     controls.update();
-
+	
+	// Animation time
+	delta_animation_time = clock.getDelta();
+	// The animation time only advances when still is false
+	//if (!still) {
+		animation_time += delta_animation_time;
+	//}
+	//rotation_angle = MAX_ANGLE * (Math.sin(animation_time * 2 * Math.PI / T) + 1) / 2;
+	
 	//Gravity: (WIP, the ground is currently hardcoded)
 	if (hakkunY - (hakkunYV + hakkunA) > 0){
 		hakkunYV += hakkunA;
@@ -187,6 +212,7 @@ function animate() {
 		hakkunYV = 0;
 	}
 	
+	//TODO - allow orbit controls later
 	//Camera positioning
 	if (pressedKeys[4]) { hakkunAngle -= 0.02; }
 	if (pressedKeys[5]) { hakkunAngle += 0.02; }
@@ -220,15 +246,27 @@ function animate() {
 	HakkunLight.position.set(hakkunX, hakkunY + 0.7, hakkunZ);
 	hakkun_head_wire.position.set(hakkunX, hakkunY + 1.6, hakkunZ);
 	hakkun_body_wire.position.set(hakkunX, hakkunY + 0.6, hakkunZ);
+	
+	//Sun shard animation
+	
+	//sunShard.position.set(shardPos[0], shardPos[1], shardPos[2]);
+	//sunWire.position.set(shardPos[0], shardPos[1], shardPos[2]);
+	sunLight.position.set(shardPos[0], shardPos[1], shardPos[2]);
+	let model_transformation = new THREE.Matrix4();
+	model_transformation.identity();
+	model_transformation.premultiply(rotationMatrixZ(animation_time));
+	model_transformation.premultiply(rotationMatrixX(animation_time));
+	model_transformation.premultiply(rotationMatrixY(animation_time));
+	model_transformation.premultiply(translationMatrix(shardPos[0], shardPos[1] + 0.3*Math.cos(animation_time), shardPos[2]));
+	sunShard.matrix.copy(model_transformation);
+	model_transformation.identity();
+	model_transformation.premultiply(rotationMatrixZ(-animation_time));
+	model_transformation.premultiply(rotationMatrixX(-animation_time));
+	model_transformation.premultiply(rotationMatrixY(-animation_time));
+	model_transformation.premultiply(translationMatrix(shardPos[0], shardPos[1] - 0.1*Math.cos(animation_time), shardPos[2]));
+	sunWire.matrix.copy(model_transformation);
 	/*
-    // Animate the cube
-	delta_animation_time = clock.getDelta();
-	// The animation time only advances when still is false
-	if (!still) {
-		animation_time += delta_animation_time;
-	}
-	rotation_angle = MAX_ANGLE * (Math.sin(animation_time * 2 * Math.PI / T) + 1) / 2;
-	*/
+    
 	//(sin(x) + 1) / 2 makes a sin function that oscillates between 0 and 1
 	//sin(x * 2pi/T) makes a sin function that oscillates with a period of T
 	//A * (sin(x * 2pi/T) + 1) / 2 has period T and oscillates between 0 and A
@@ -260,9 +298,6 @@ let still = false;
 window.addEventListener('keydown', onKeyPress);
 window.addEventListener('keyup', onKeyRelease);
 
-//FIX later: make WASD keypress recognition and movement smoother
-//Possibly implement XZ velocity?
-//Also make Hakkun face a certain direction
 function onKeyPress(event) {
 	switch (event.key) {
 		/*
