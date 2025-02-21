@@ -195,7 +195,7 @@ function animate() {
 
 
 	yellowblock.position.x = Math.sin(time * 2) * 2; 
-    yellowblock.position.y = 2.5 + Math.sin(time * 2) * 2; 
+    yellowblock.position.y = 2.6 + Math.sin(time * 2) * 2; 
     redblock.position.y = Math.abs(Math.sin(time * 2)) * 2 + 0.5;  
     blueblock.position.x = Math.sin(time * 2) * 3;  
 
