@@ -173,7 +173,32 @@ let hakkunYV = 0; //vertical velocity
 let pressedKeys = [false, false, false, false, false, false];
 const hakkunA = 0.003; //vertical acceleration
 
+
+function createBlock(material, x, y, z){
+
+	const geometry = new THREE.BoxGeometry(1, 1, 1);
+	const cube = new THREE.Mesh(geometry, material);
+	cube.position.set(x, y, z)
+	scene.add(cube);
+	return cube;
+}
+
+const yellowblock = createBlock(yellow_material, 0, 0.5, 0);
+const redblock = createBlock(red_material, 5, 0.5, 3); 
+const blueblock = createBlock(blue_material, -2, 0.5, 6); 
+
 function animate() {
+	  // Get time in seconds
+    let time = Date.now() / 1000;
+
+    // Oscillate blocks
+
+
+	yellowblock.position.x = Math.sin(time * 2) * 2; 
+    yellowblock.position.y = 2.5 + Math.sin(time * 2) * 2; 
+    redblock.position.y = Math.abs(Math.sin(time * 2)) * 2 + 0.5;  
+    blueblock.position.x = Math.sin(time * 2) * 3;  
+
     
 	renderer.render( scene, camera );
     controls.update();
@@ -326,3 +351,7 @@ function onKeyRelease(event) {
 			break;
 	}
 }
+
+
+
+
