@@ -30,13 +30,12 @@ scene.add(xAxis);
 scene.add(yAxis);
 scene.add(zAxis);
 
-
 // Setting up the lights
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+/*const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(0.5, .0, 1.0).normalize();
 scene.add(directionalLight);
-
+*/ 
 const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
 scene.add(ambientLight);
 
@@ -57,17 +56,84 @@ const grass_material = new THREE.MeshPhongMaterial({
     color: 0x00ff00, // Green color
     shininess: 100   
 });
+const sun_material = new THREE.MeshBasicMaterial({
+    color: 0xff8800, // orange-ish color
+});
 
-//Blocks have a size of 1x1x1
-const l = 0.5
-const cube_geometry = new THREE.BoxGeometry(1, 1, 1);
+//Blocks have a size of 1.2x1.2x1.2
+const l = 0.6;
+const cube_geometry = new THREE.BoxGeometry(2*l, 2*l, 2*l);
+
+// Wireframe cube geometry
+const wirecube_vertices = new Float32Array([
+	// Front face
+    -l, -l,  l,
+     l, -l,  l,
+     l, -l,  l,
+     l,  l,  l,
+     l,  l,  l,
+    -l,  l,  l,
+    -l,  l,  l,
+	-l, -l,  l,
+    // Left face
+    -l, -l, -l,
+    -l, -l,  l,
+	-l, -l,  l,
+    -l,  l,  l,
+    -l,  l,  l,
+	-l,  l, -l,
+	-l,  l, -l,
+	-l, -l, -l,
+    // Top face
+	-l,  l,  l,
+	 l,  l,  l,
+	 l,  l,  l,
+	 l,  l, -l,
+	 l,  l, -l,
+	-l,  l, -l,
+	-l,  l, -l,
+	-l,  l,  l,
+    // Bottom face
+	-l, -l, -l,
+	 l, -l, -l,
+	 l, -l, -l,	
+	 l, -l,  l,
+	 l, -l,  l,
+	-l, -l,  l,
+	-l, -l,  l,
+	-l, -l, -l,
+    // Right face
+	 l, -l,  l,
+	 l, -l, -l,
+	 l, -l, -l,
+	 l,  l, -l,
+	 l,  l, -l,
+	 l,  l,  l,
+	 l,  l,  l,
+	 l, -l,  l,
+     // Back face
+	 l, -l, -l,
+	-l, -l, -l,
+	-l, -l, -l,
+	-l,  l, -l,
+	-l,  l, -l,
+	 l,  l, -l,
+	 l,  l, -l,
+	 l, -l, -l
+]);
+
+const wirecube_geometry = new THREE.BufferGeometry();
+wirecube_geometry.setAttribute( 'position', new THREE.BufferAttribute( wirecube_vertices, 3 ) );
 
 const level_plane_geometry = new THREE.PlaneGeometry(100,100);
+
+const sun_shard_geometry = new THREE.OctahedronGeometry();
+const sun_wire_geometry = new THREE.TetrahedronGeometry(1);
 
 //Define Hakkun model geometry (NOT DONE)
 const hakkun_head_geometry = new THREE.SphereGeometry(0.5, 6, 6);
 const hakkun_body_geometry = new THREE.CapsuleGeometry(0.35, 0.5, 2, 8);
-
+ 
 //Hakkun slightly lights up his surroundings
 const HakkunLight = new THREE.PointLight(0xffffff, 0.5, 100);
 scene.add(HakkunLight);
@@ -88,6 +154,16 @@ level.matrixAutoUpdate = false;
 level.matrix.copy(rotationMatrixX(3*Math.PI/2));
 scene.add(level);
 level.material.color.setRGB(0,1,0);
+
+//Sun shards: (at most 3 in one level)
+let sunShard = new THREE.Mesh(sun_shard_geometry, sun_material);
+let sunWire = new THREE.LineSegments(sun_wire_geometry);
+let sunLight = new THREE.PointLight(0xffffaa, 50, 200);
+sunShard.matrixAutoUpdate = false;
+sunWire.matrixAutoUpdate = false;
+scene.add(sunShard);
+scene.add(sunWire);
+scene.add(sunLight);
 
 //const line = new THREE.LineSegments( wireframe_geometry );
 
@@ -153,79 +229,59 @@ for (let i = 0; i < cubes.length; i++) {
 	model_transformation.premultiply(T2);
 }
 */
-/*
+
 let animation_time = 0;
 let delta_animation_time;
-let rotation_angle;
 const clock = new THREE.Clock();
 
-const MAX_ANGLE = 10 * Math.PI/180
-const T = 2
-*/
-let hakkunX = 0;
+let hakkunX = 2;
 let hakkunY = 4;
-let hakkunZ = 0;
+let hakkunZ = 12;
 let hakkunAngle = 0;
-let hakkunXV = 0; 
+let hakkunXV = 0; //horizontal velocity
 let hakkunZV = 0;
 let hakkunYV = 0; //vertical velocity
-let isJumping = false;
-let onGround = false;
-const gravity = 0.02;
-const jumpVelocity = 0.4;
 //0=W, 1=A, 2=S, 3=D, 4=Q, 5=E
 let pressedKeys = [false, false, false, false, false, false];
-//const hakkunA = 0.003; //vertical acceleration
+const hakkunA = 0.003; //vertical acceleration
 
+const shardPos = [1, 4, 3]; //sun shard position
 
 function createBlock(material, x, y, z){
-
-	const geometry = new THREE.BoxGeometry(1, 1, 1);
-	const cube = new THREE.Mesh(geometry, material);
-	cube.position.set(x, y, z)
-	scene.add(cube);
-	return cube;
+       const cube = new THREE.Mesh(cube_geometry, material);
+       cube.position.set(x, y, z)
+       scene.add(cube);
+       return cube;
 }
 
-const yellowblock = createBlock(yellow_material, 0, 0.5, 0);
-const redblock = createBlock(red_material, 5, 0.5, 3); 
-const blueblock = createBlock(blue_material, -2, 0.5, 6); 
+const yellowblock = createBlock(yellow_material, 0, 0.6, 0);
+const redblock = createBlock(red_material, 5, 0.6, 3);
+const blueblock = createBlock(blue_material, -2, 0.6, 4);
+const block_wire = new THREE.LineSegments( wirecube_geometry );
+block_wire.position.set(-4 , 0.61, -1);
+scene.add(block_wire);
+
+let musicStarted = false;
 
 function animate() {
-	  // Get time in seconds
-    let time = Date.now() / 1000;
-
-    // Oscillate blocks
-
-
-	yellowblock.position.x = Math.sin(time * 2) * 2; 
-    yellowblock.position.y = 2.6 + Math.sin(time * 2) * 2; 
-    redblock.position.y = Math.abs(Math.sin(time * 2)) * 2 + 0.5;  
-    blueblock.position.x = Math.sin(time * 2) * 3;  
-
     
 	renderer.render( scene, camera );
     controls.update();
-
-	//Gravity: (WIP, the ground is currently hardcoded)
-    if (!onGround) {
-        hakkunYV -= gravity;
-        hakkunY += hakkunYV;
-    }
-
-    if (hakkunY <= 0) {
-        hakkunY = 0;
-        hakkunYV = 0;
-        onGround = true;
-        isJumping = false;
-    }
-
-    if (pressedKeys[6] && onGround) {
-        isJumping = true;
-        onGround = false;
-        hakkunYV = jumpVelocity;
-    }
 	
+	// Animation time
+	delta_animation_time = clock.getDelta();
+	animation_time += delta_animation_time;
+	
+	//Gravity: (WIP, the ground is currently hardcoded)
+	if (hakkunY - (hakkunYV + hakkunA) > 0){
+		hakkunYV += hakkunA;
+		hakkunY -= hakkunYV;
+	}
+	else {
+		hakkunYV = 0;
+	}
+		
+	//TODO - allow orbit controls later
 	//Camera positioning
 	if (pressedKeys[4]) { hakkunAngle -= 0.02; }
 	if (pressedKeys[5]) { hakkunAngle += 0.02; }
@@ -251,23 +307,55 @@ function animate() {
 		hakkunXV += 0.1*Math.cos(hakkunAngle);
 	}
 	
+	//Start music after first W press:
+	if (pressedKeys[0] && !musicStarted){
+		musicStarted = true;
+		//Audio playback:
+		const listener = new THREE.AudioListener();
+		camera.add(listener);
+		const sound = new THREE.Audio(listener);
+		const audioLoader = new THREE.AudioLoader();
+		audioLoader.load('assets/Stage1.mp3', function(buffer) {
+			sound.setBuffer(buffer);
+			sound.setLoop(true);
+			sound.setVolume(0.7);
+			sound.play();
+		});
+	}
+	
 	//Horizontal movement:
-    hakkunX += hakkunXV;
-    hakkunZ += hakkunZV;
+	hakkunX += hakkunXV;
+	hakkunZ += hakkunZV;
 	
 	//Hakkun body parts positioning:
 	HakkunLight.position.set(hakkunX, hakkunY + 0.7, hakkunZ);
 	hakkun_head_wire.position.set(hakkunX, hakkunY + 1.6, hakkunZ);
 	hakkun_body_wire.position.set(hakkunX, hakkunY + 0.6, hakkunZ);
+	
+	//Sun shard animation
+	sunLight.position.set(shardPos[0], shardPos[1], shardPos[2]);
+	let model_transformation = new THREE.Matrix4();
+	model_transformation.identity();
+	model_transformation.premultiply(rotationMatrixZ(animation_time));
+	model_transformation.premultiply(rotationMatrixX(animation_time));
+	model_transformation.premultiply(rotationMatrixY(animation_time));
+	model_transformation.premultiply(translationMatrix(shardPos[0], shardPos[1] + 0.3*Math.cos(animation_time), shardPos[2]));
+	sunShard.matrix.copy(model_transformation);
+	model_transformation.identity();
+	model_transformation.premultiply(rotationMatrixZ(-animation_time));
+	model_transformation.premultiply(rotationMatrixX(-animation_time));
+	model_transformation.premultiply(rotationMatrixY(-animation_time));
+	model_transformation.premultiply(translationMatrix(shardPos[0], shardPos[1] - 0.1*Math.cos(animation_time), shardPos[2]));
+	sunWire.matrix.copy(model_transformation);
+	
+	//Oscillate blocks
+	yellowblock.position.x = Math.sin(-animation_time * 2) * 2;
+    yellowblock.position.y = 2.6 + Math.sin(animation_time * 2) * 2;
+    redblock.position.y = 2.6 + (Math.sin(-animation_time * 2)) * 2;
+    blueblock.position.x = Math.sin(animation_time * 2) * 3;
+		
 	/*
-    // Animate the cube
-	delta_animation_time = clock.getDelta();
-	// The animation time only advances when still is false
-	if (!still) {
-		animation_time += delta_animation_time;
-	}
-	rotation_angle = MAX_ANGLE * (Math.sin(animation_time * 2 * Math.PI / T) + 1) / 2;
-	*/
+    
 	//(sin(x) + 1) / 2 makes a sin function that oscillates between 0 and 1
 	//sin(x * 2pi/T) makes a sin function that oscillates with a period of T
 	//A * (sin(x * 2pi/T) + 1) / 2 has period T and oscillates between 0 and A
@@ -299,9 +387,6 @@ let still = false;
 window.addEventListener('keydown', onKeyPress);
 window.addEventListener('keyup', onKeyRelease);
 
-//FIX later: make WASD keypress recognition and movement smoother
-//Possibly implement XZ velocity?
-//Also make Hakkun face a certain direction
 function onKeyPress(event) {
 	switch (event.key) {
 		/*
@@ -328,12 +413,9 @@ function onKeyPress(event) {
 			pressedKeys[3] = true;
 			break;
 		case ' ':
-            if (onGround) {
-                isJumping = true;
-                onGround = false;
-                hakkunYV = jumpVelocity;
-            }
-			pressedKeys[6]= true;
+			if (hakkunY - (hakkunYV + hakkunA) <= 0){
+				hakkunYV = -0.13;
+			}
 			break;
 		case 'q':
 			pressedKeys[4] = true;
@@ -360,9 +442,6 @@ function onKeyRelease(event) {
 		case 'd':
 			pressedKeys[3] = false;
 			break;
-		case ' ':
-			pressedKeys[6] = false;
-			break;
 		case 'q':
 			pressedKeys[4] = false;
 			break;
@@ -371,7 +450,3 @@ function onKeyRelease(event) {
 			break;
 	}
 }
-
-
-
-
