@@ -220,7 +220,7 @@ function animate() {
         isJumping = false;
     }
 
-    if (pressedKeys[4] && onGround) {
+    if (pressedKeys[6] && onGround) {
         isJumping = true;
         onGround = false;
         hakkunYV = jumpVelocity;
@@ -333,6 +333,7 @@ function onKeyPress(event) {
                 onGround = false;
                 hakkunYV = jumpVelocity;
             }
+			pressedKeys[6]= true;
 			break;
 		case 'q':
 			pressedKeys[4] = true;
@@ -358,6 +359,9 @@ function onKeyRelease(event) {
 			break;
 		case 'd':
 			pressedKeys[3] = false;
+			break;
+		case ' ':
+			pressedKeys[6] = false;
 			break;
 		case 'q':
 			pressedKeys[4] = false;
