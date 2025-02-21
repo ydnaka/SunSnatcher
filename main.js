@@ -261,6 +261,8 @@ const block_wire = new THREE.LineSegments( wirecube_geometry );
 block_wire.position.set(-4 , 0.61, -1);
 scene.add(block_wire);
 
+let musicStarted = false;
+
 function animate() {
     
 	renderer.render( scene, camera );
@@ -278,7 +280,7 @@ function animate() {
 	else {
 		hakkunYV = 0;
 	}
-	
+		
 	//TODO - allow orbit controls later
 	//Camera positioning
 	if (pressedKeys[4]) { hakkunAngle -= 0.02; }
@@ -303,6 +305,22 @@ function animate() {
 	if (pressedKeys[3]) {
 		hakkunZV += 0.1*Math.sin(hakkunAngle);
 		hakkunXV += 0.1*Math.cos(hakkunAngle);
+	}
+	
+	//Start music after first W press:
+	if (pressedKeys[0] && !musicStarted){
+		musicStarted = true;
+		//Audio playback:
+		const listener = new THREE.AudioListener();
+		camera.add(listener);
+		const sound = new THREE.Audio(listener);
+		const audioLoader = new THREE.AudioLoader();
+		audioLoader.load('assets/Stage1.mp3', function(buffer) {
+			sound.setBuffer(buffer);
+			sound.setLoop(true);
+			sound.setVolume(0.7);
+			sound.play();
+		});
 	}
 	
 	//Horizontal movement:
