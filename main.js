@@ -66,7 +66,7 @@ const hakkun_head_geometry = new THREE.SphereGeometry(0.5, 6, 6);
 const hakkun_body_geometry = new THREE.CapsuleGeometry(0.35, 0.5, 2, 8); //0.60
 
 //Hakkun very slightly lights up his surroundings
-const HakkunLight = new THREE.PointLight(0xffffff, 1, 100);
+const HakkunLight = new THREE.PointLight(0xffffff, 0.5, 100);
 //HakkunLight.position.set(0, 4, 0); // Position the light
 scene.add(HakkunLight);
 
@@ -187,7 +187,11 @@ const T = 2
 let hakkunX = 0;
 let hakkunY = 4;
 let hakkunZ = 0;
-let hakkunV = 0; //vertical velocity
+let hakkunXV = 0; //horizontal velocity
+let hakkunZV = 0;
+let hakkunYV = 0; //vertical velocity
+//0=W, 1=A, 2=S, 3=D
+let pressedKeys = [false, false, false, false];
 const hakkunA = 0.003; //vertical acceleration
 
 function animate() {
@@ -196,13 +200,24 @@ function animate() {
     controls.update();
 
 	//Gravity: (WIP, the ground is currently hardcoded)
-	if (hakkunY - (hakkunV + hakkunA) > 0){
-		hakkunV += hakkunA;
-		hakkunY -= hakkunV;
+	if (hakkunY - (hakkunYV + hakkunA) > 0){
+		hakkunYV += hakkunA;
+		hakkunY -= hakkunYV;
 	}
 	else {
-		hakkunV = 0;
+		hakkunYV = 0;
 	}
+	
+	//WASD press handling:
+	hakkunXV = 0; hakkunZV = 0;
+	if (pressedKeys[0]) { hakkunZV += -0.1; }
+	if (pressedKeys[1]) { hakkunXV += -0.1; }
+	if (pressedKeys[2]) { hakkunZV += 0.1; }
+	if (pressedKeys[3]) { hakkunXV += 0.1; }
+	
+	//Horizontal movement:
+	hakkunX += hakkunXV;
+	hakkunZ += hakkunZV;
 	
 	//Hakkun body parts positioning:
 	HakkunLight.position.set(hakkunX, hakkunY + 0.7, hakkunZ);
@@ -246,6 +261,7 @@ renderer.setAnimationLoop( animate );
 // TODO: Add event listener
 let still = false;
 window.addEventListener('keydown', onKeyPress);
+window.addEventListener('keyup', onKeyRelease);
 
 //FIX later: make WASD keypress recognition and movement smoother
 //Possibly implement XZ velocity?
@@ -264,23 +280,40 @@ function onKeyPress(event) {
 			}
 			*/
 		case 'w':
-			hakkunZ -= 0.1;
+			pressedKeys[0] = true;
 			break;
 		case 'a':
-			hakkunX -= 0.1;
+			pressedKeys[1] = true;
 			break;
 		case 's':
-			hakkunZ += 0.1;
+			pressedKeys[2] = true;
 			break;
 		case 'd':
-			hakkunX += 0.1;
+			pressedKeys[3] = true;
 			break;
 		case ' ':
-			if (hakkunY - (hakkunV + hakkunA) <= 0){
-				hakkunV = -0.2;
+			if (hakkunY - (hakkunYV + hakkunA) <= 0){
+				hakkunYV = -0.2;
 			}
 			break;
 		default:
 	console.log(`Key ${event.key} pressed`);
+	}
+}
+
+function onKeyRelease(event) {
+	switch (event.key) {
+		case 'w':
+			pressedKeys[0] = false;
+			break;
+		case 'a':
+			pressedKeys[1] = false;
+			break;
+		case 's':
+			pressedKeys[2] = false;
+			break;
+		case 'd':
+			pressedKeys[3] = false;
+			break;
 	}
 }
