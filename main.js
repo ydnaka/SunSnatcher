@@ -63,24 +63,19 @@ const level_plane_geometry = new THREE.PlaneGeometry(100,100);
 
 //Define Hakkun model geometry (NOT DONE)
 const hakkun_head_geometry = new THREE.SphereGeometry(0.5, 6, 6);
-const hakkun_body_geometry = new THREE.CapsuleGeometry(0.35, 0.5, 2, 8); //0.60
+const hakkun_body_geometry = new THREE.CapsuleGeometry(0.35, 0.5, 2, 8);
 
-//Hakkun very slightly lights up his surroundings
+//Hakkun slightly lights up his surroundings
 const HakkunLight = new THREE.PointLight(0xffffff, 0.5, 100);
-//HakkunLight.position.set(0, 4, 0); // Position the light
 scene.add(HakkunLight);
 
 //let hakkun_head_fill = new THREE.Mesh( hakkun_head_geometry, red_material );
 let hakkun_head_wire = new THREE.LineSegments( hakkun_head_geometry );
-//hakkun_head_fill.position.set(0, 5, 0);
-//hakkun_head_wire.position.set(0, 5, 0);
 //scene.add(hakkun_head_fill);
 scene.add(hakkun_head_wire);
 
 //let hakkun_body_fill = new THREE.Mesh( hakkun_body_geometry, red_material );
 let hakkun_body_wire = new THREE.LineSegments( hakkun_body_geometry );
-//hakkun_body_fill.position.set(0, 4, 0);
-//hakkun_body_wire.position.set(0, 4, 0);
 //scene.add(hakkun_body_fill);
 scene.add(hakkun_body_wire);
 
@@ -139,26 +134,6 @@ function scalingMatrix(sx, sy, sz) {
 	);
 }
 
-/*
-//making 2 different arrays for mesh and wireframe cubes:
-let meshCubes = [];
-for (let i = 0; i < 7; i++) {
-	let cube = new THREE.Mesh(cube_geometry, yellow_material);
-	cube.matrixAutoUpdate = false;
-	meshCubes.push(cube);
-	scene.add(cube);
-}
-
-let wireCubes = [];
-for (let i = 0; i < 7; i++) {
-	let cube = new THREE.LineSegments( wireframe_geometry );
-	cube.matrixAutoUpdate = false;
-	wireCubes.push(cube);
-	scene.add(cube);
-	//wireframe cubes are not visible by default
-	cube.visible = false;
-}
-*/
 // Transform cubes:
 /*
 const S = scalingMatrix(1, 1.5, 1);
@@ -187,11 +162,12 @@ const T = 2
 let hakkunX = 0;
 let hakkunY = 4;
 let hakkunZ = 0;
-let hakkunXV = 0; //horizontal velocity
+let hakkunAngle = 0;
+let hakkunXV = 0; 
 let hakkunZV = 0;
 let hakkunYV = 0; //vertical velocity
-//0=W, 1=A, 2=S, 3=D
-let pressedKeys = [false, false, false, false];
+//0=W, 1=A, 2=S, 3=D, 4=Q, 5=E
+let pressedKeys = [false, false, false, false, false, false];
 const hakkunA = 0.003; //vertical acceleration
 
 function animate() {
@@ -208,12 +184,30 @@ function animate() {
 		hakkunYV = 0;
 	}
 	
+	//Camera positioning
+	if (pressedKeys[4]) { hakkunAngle -= 0.02; }
+	if (pressedKeys[5]) { hakkunAngle += 0.02; }
+	camera.position.set(hakkunX + -6*Math.sin(hakkunAngle), hakkunY + 3, hakkunZ + 6*Math.cos(hakkunAngle));
+	controls.target.set(hakkunX, hakkunY, hakkunZ);
+	
 	//WASD press handling:
 	hakkunXV = 0; hakkunZV = 0;
-	if (pressedKeys[0]) { hakkunZV += -0.1; }
-	if (pressedKeys[1]) { hakkunXV += -0.1; }
-	if (pressedKeys[2]) { hakkunZV += 0.1; }
-	if (pressedKeys[3]) { hakkunXV += 0.1; }
+	if (pressedKeys[0]) {
+		hakkunZV += -0.1*Math.cos(hakkunAngle);
+		hakkunXV += 0.1*Math.sin(hakkunAngle);
+	}
+	if (pressedKeys[1]) {
+		hakkunZV += -0.1*Math.sin(hakkunAngle);
+		hakkunXV += -0.1*Math.cos(hakkunAngle);
+	}
+	if (pressedKeys[2]) {
+		hakkunZV += 0.1*Math.cos(hakkunAngle);
+		hakkunXV += -0.1*Math.sin(hakkunAngle);
+	}
+	if (pressedKeys[3]) {
+		hakkunZV += 0.1*Math.sin(hakkunAngle);
+		hakkunXV += 0.1*Math.cos(hakkunAngle);
+	}
 	
 	//Horizontal movement:
 	hakkunX += hakkunXV;
@@ -296,6 +290,12 @@ function onKeyPress(event) {
 				hakkunYV = -0.2;
 			}
 			break;
+		case 'q':
+			pressedKeys[4] = true;
+			break;
+		case 'e':
+			pressedKeys[5] = true;
+			break;
 		default:
 	console.log(`Key ${event.key} pressed`);
 	}
@@ -314,6 +314,12 @@ function onKeyRelease(event) {
 			break;
 		case 'd':
 			pressedKeys[3] = false;
+			break;
+		case 'q':
+			pressedKeys[4] = false;
+			break;
+		case 'e':
+			pressedKeys[5] = false;
 			break;
 	}
 }
