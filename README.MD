@@ -12,9 +12,15 @@ All you need to do is:
 3. Run "npx vite" to start the project
 
 Controls:
+
 W - move forward
+
 S - move backward
+
 A - strafe left
+
 D - strafe right
+
 Q - turn camera to the left
+
 E - turn camera to the right
