@@ -30,6 +30,19 @@ scene.add(xAxis);
 scene.add(yAxis);
 scene.add(zAxis);
 
+//grass texture
+const grassTexture = new THREE.TextureLoader().load('textures/grass.png');
+grassTexture.wrapS = THREE.RepeatWrapping;
+grassTexture.wrapT = THREE.RepeatWrapping;
+grassTexture.repeat.set(16, 16); // Adjust for tiling effect
+
+//red brick texture
+const redBrickTexture = 
+
+//yellow brick texture
+
+//blue brick texture
+
 // Setting up the lights
 
 /*const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -54,7 +67,8 @@ const yellow_material = new THREE.MeshPhongMaterial({
 });
 const grass_material = new THREE.MeshPhongMaterial({
     color: 0x00ff00, // Green color
-    shininess: 100   
+    shininess: 100,  
+	map: grassTexture 
 });
 const sun_material = new THREE.MeshBasicMaterial({
     color: 0xff8800, // orange-ish color
