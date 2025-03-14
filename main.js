@@ -307,7 +307,7 @@ const levelConfigurations = [
   // Level 1
   {
     hakkunStartPosition: { x: 0, y: 4, z: 0 }, // Start near the shard
-    blockPositions: [],
+    blockPositions: [ {x: -2, y: 0.61, z: -3}],
     potPosition: { x: 0, y: 0, z: 3 }, 
     potColor: 0xff0000, 
     sunPosition: { x: 1, y: 10, z: 3 }, 
@@ -328,13 +328,48 @@ const levelConfigurations = [
   
   // Level 2
   {
-    
+    hakkunStartPosition: { x: 0, y: 4, z: 12 },
+    blockPositions: [],
+    potPosition: { x: 0, y: 0, z: 3 }, 
+    potColor: 0xffff00, 
+    sunPosition: { x: 1, y: 4, z: 3 }, 
+
+    goalCondition: function() {
+        // Check distance between Hakkun and the sun shard
+        const distance = Math.sqrt(
+            Math.pow(hakkunX - shardPos[0], 2) +
+            Math.pow(hakkunY - shardPos[1], 2) +
+            Math.pow(hakkunZ - shardPos[2], 2)
+        );
+
+        return distance < 1.5; // Complete level when close enough to the sun shard
+    },
+
+    message: "Level 2 complete! You have found the Sun Shard!"
      
   },
   
   // Level 3
   {
-    
+    hakkunStartPosition: { x: -5, y: 4, z: 5 },
+    blockPositions: [],
+    potPosition: { x: 0, y: 0, z: 3 }, 
+    potColor: 0x0000ff, 
+    sunPosition: { x: 7, y: 4, z: -2 }, 
+
+    goalCondition: function() {
+        // Check distance between Hakkun and the sun shard
+        const distance = Math.sqrt(
+            Math.pow(hakkunX - shardPos[0], 2) +
+            Math.pow(hakkunY - shardPos[1], 2) +
+            Math.pow(hakkunZ - shardPos[2], 2)
+        );
+
+        return distance < 1.5; // Complete level when close enough to the sun shard
+    },
+
+    message: "Level 2 complete! You have found the Sun Shard!"
+     
   },
 
   // Level 4
@@ -378,24 +413,24 @@ const levelConfigurations = [
   
 ];
 
-//Declare SunShard (REMOVE THIS, must be defined by level selector)
+//Declare SunShard
 let sunShard = new THREE.Mesh(sun_shard_geometry, sun_material);
 let sunWire = new THREE.LineSegments(sun_wire_geometry);
 //SunShard has a light as well
 let sunLight = new THREE.PointLight(0xffffaa, 50, 200);
 sunShard.matrixAutoUpdate = false;
 sunWire.matrixAutoUpdate = false;
+//Add sunshard to scene; its position is updated later
 scene.add(sunShard);
 scene.add(sunWire);
 scene.add(sunLight);
 
-//Pot logic (review later)
-const colors = [0xff0000, 0xffff00, 0x0000ff];
-const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
+//Create Pot geometry
 const potBodyGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 32);
 const potRimGeometry = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 32);
-const potMaterial = new THREE.MeshBasicMaterial({ color: randomColor });
+//Create Pot material with specified color
+const potMaterial = new THREE.MeshBasicMaterial();
+potMaterial.color.set(levelConfigurations[currentLevel-1].potColor);
 const potBody = new THREE.Mesh(potBodyGeometry, potMaterial);
 const potRim = new THREE.Mesh(potRimGeometry, potMaterial);
 
@@ -405,7 +440,9 @@ const pot = new THREE.Group();
 pot.add(potBody);
 pot.add(potRim);
 
-pot.position.set(0, 0, 3);
+pot.position.set(levelConfigurations[currentLevel-1].potPosition.x,
+				 levelConfigurations[currentLevel-1].potPosition.y,
+				 levelConfigurations[currentLevel-1].potPosition.z);
 
 scene.add(pot);
 
@@ -462,25 +499,32 @@ const clock = new THREE.Clock();
 let hakkunX = levelConfigurations[currentLevel - 1].hakkunStartPosition.x;
 let hakkunY = levelConfigurations[currentLevel - 1].hakkunStartPosition.y;
 let hakkunZ = levelConfigurations[currentLevel - 1].hakkunStartPosition.z;
+//Hakkun's angle initially faces forward
 let hakkunAngle = 0;
+//Hakkun's X, Y, and Z velocity
 let hakkunXV = 0;
 let hakkunZV = 0;
 let hakkunYV = 0;
+//Is Hakkun jumping?
 let isJumping = false;
+//Is Hakkun on (a) ground?
 let onGround = false;
+//Is Hakkun on a block?
+let onBlock = false;
+//Gravity that applies to Hakkun
 const gravity = 0.02;
 const gravity1 = 0.004;
+//Hakkun's Jump velocity
 const jumpVelocity = 0.4;
 
-let pressedKeys = [false, false, false, false, false, false, false, false, false, false];
+// W, A, S, D, Q, E, "space", c, x
+let pressedKeys = [false, false, false, false, false, false, false, false];
 const hakkunA = 0.003;
 
 //Place sun shard based on defined position in level
-const shardPos = [levelConfigurations[currentLevel - 1].sunPosition.x,
+let shardPos = [levelConfigurations[currentLevel - 1].sunPosition.x,
 			      levelConfigurations[currentLevel - 1].sunPosition.y,
 				  levelConfigurations[currentLevel - 1].sunPosition.z];
-
-let carriedBlockOriginalY = 0;
 
 function createBlock(material, x, y, z) {
 	const cube = new THREE.Mesh(cube_geometry, material);
@@ -489,20 +533,38 @@ function createBlock(material, x, y, z) {
 	return cube;
 }
 
-const yellowblock = createBlock(yellow_material, 0, 0.6, 0);
-const redblock = createBlock(red_material, 5, 0.6, 3);
-//redblock.material.map = redBrickTexture;
-//redblock.material.needsUpdate = true;
-const blueblock = createBlock(blue_material, -2, 0.6, 4);
+/* Block motion functions */
 
-const colorReferenceBlocks = {
-	"yellow": yellowblock,
-	"red": redblock,
-	"blue": blueblock
+function yellow_move(yellowblock, startTime, startX, startY, startZ) {
+	let t = (animation_time - startTime);
+	let Range = 2;
+	yellowblock.position.x = startX - (Range) * (1 - Math.cos(Math.PI * t / 2));
+	yellowblock.position.y = startY + 1.6 + (Range) * (1 - Math.cos(Math.PI * t / 2));
+	yellowblock.position.z = startZ - 0.6;
+}
+function red_move(redblock, startTime, startX, startY, startZ) {
+	let t = (animation_time - startTime);
+	let Range = 2;
+	redblock.position.x = startX;
+	redblock.position.y = startY + + 1.6 + (Range) * (1 - Math.cos(Math.PI * t / 2));
+	redblock.position.z = startZ - 0.6;
+}
+function blue_move(blueblock, startTime, startX, startY, startZ) {
+	let t = (animation_time - startTime);
+	let Range = 2;
+	blueblock.position.x = startX + (Range) * (1 - Math.cos(Math.PI * t / 2));
+	blueblock.position.y = startY + 1.6;
+	blueblock.position.z = startZ - 0.6;
+}
+
+const colorReference = {
+	"yellow": yellow_move,
+	"red": red_move,
+	"blue": blue_move
 };
 
 const block_wire = new THREE.LineSegments(wirecube_geometry);
-block_wire.position.set(-4, 0.61, -1);
+block_wire.position.set(-2, 0.61, -1);
 scene.add(block_wire);
 
 const block_solid = new THREE.Mesh(cube_geometry, new THREE.MeshPhongMaterial({
@@ -516,9 +578,7 @@ const convertedBlocks = [];
 
 let blockIsSolid = false;
 
-let carryingBlock = false;
-let carriedBlock = null;
-let carriedBlockColor = null;
+let blockColor;
 
 let musicStarted = false;
 
@@ -538,18 +598,18 @@ function switchToSolid() {
 
 		const colorHex = block_solid.material.color.getHex();
 		if (colorHex === 0xff0000) {
-			carriedBlockColor = "red";
+			blockColor = "red";
 		} else if (colorHex === 0xffff00) {
-			carriedBlockColor = "yellow";
+			blockColor = "yellow";
 		} else if (colorHex === 0x0000ff) {
-			carriedBlockColor = "blue";
+			blockColor = "blue";
 		}
 
 		convertedBlocks.push({
 			block: block_solid,
-			color: carriedBlockColor,
 			mimicking: true,
 			originalPosition: block_solid.position.clone(),
+			startTime: animation_time,
 			fixedY: block_solid.position.y
 		});
 	}
@@ -575,23 +635,32 @@ function switchToWireframe() {
 	}
 }
 
+
+
+//Function used to absorb colors from the pots
 function checkProximityAndAbsorbColor() {
+	//Distance between Hakkun and Pot must be less than 0.5 units
 	const distanceThreshold = 0.5;
+	//Get pot's position
 	const potPosition = pot.position;
+	//Calculate distance
 	const distance = Math.sqrt(
 		Math.pow(hakkunX - potPosition.x, 2) +
 		Math.pow(hakkunY - potPosition.y, 2) +
 		Math.pow(hakkunZ - potPosition.z, 2)
 	);
-
+	
+	//If the distance is within the threshold
 	if (distance < distanceThreshold) {
 		const potTopY = pot.position.y + 0.4;
+		//Make Hakkun stand on top of the pot
 		if (hakkunY <= potTopY) {
 			hakkunY = potTopY;
 			hakkunYV = 0;
 			onGround = true;
 			isJumping = false;
 		}
+		//If the C key is pressed, absorb the color
 		if (pressedKeys[7]) {
 			const absorbedColor = potMaterial.color.getHex();
 			hakkun_head.material.color.setHex(absorbedColor);
@@ -599,21 +668,16 @@ function checkProximityAndAbsorbColor() {
 		}
 	}
 	else {
-		if (!carryingBlock) {
-			hakkunYV -= gravity;
-			hakkunY += hakkunYV;
-		}
-		else {
-			hakkunY = Math.max(0, hakkunY);
-			hakkunYV = 0;
-			onGround = true;
-			isJumping = false;
-		}
+		//Affect Hakkun with gravity if he's not on top of the pot
+		hakkunYV -= gravity;
+		hakkunY += hakkunYV;
 	}
 }
 
+//Function used to inject colors into blocks
 function checkProximityAndInjectColor() {
 	const distanceThreshold = 1.5;
+	
 	const blockPosition = blockIsSolid ? block_solid.position : block_wire.position;
 	const distance = Math.sqrt(
 		Math.pow(hakkunX - blockPosition.x, 2) +
@@ -628,132 +692,42 @@ function checkProximityAndInjectColor() {
 			hakkunYV = 0;
 			onGround = true;
 			isJumping = false;
+			onBlock = true;
+			//If Hakkun isn't trying to get off the block, move him with the block
+			if (!(pressedKeys[0] || pressedKeys[1] || pressedKeys[2] || pressedKeys[3])){
+				hakkunX = blockPosition.x;
+				hakkunZ = blockPosition.z;
+			}
 		}
 
 		if (pressedKeys[8]) {
 			const injectedColor = hakkun_head.material.color.getHex();
+			if (injectedColor != 0xFFFFFF) {
+				if (blockIsSolid) {
 
-			if (blockIsSolid) {
+					block_solid.material.color.setHex(injectedColor);
+				} else {
 
-				block_solid.material.color.setHex(injectedColor);
-			} else {
-
-				block_wire.material.color.setHex(injectedColor);
-
-
-				switchToSolid();
-			}
-
-			const colorHex = injectedColor;
-			if (colorHex === 0xff0000) {
-				carriedBlockColor = "red";
-			} else if (colorHex === 0xffff00) {
-				carriedBlockColor = "yellow";
-			} else if (colorHex === 0x0000ff) {
-				carriedBlockColor = "blue";
-			}
-		}
-
-		if (pressedKeys[9] && !carryingBlock) {
-			carryingBlock = true;
-			if (blockIsSolid) {
-				carriedBlock = block_solid;
-			} else {
-				carriedBlock = block_wire;
-			}
-
-			carriedBlockOriginalY = blockIsSolid ? block_solid.position.y : block_wire.position.y;
-
-			console.log("Block picked up");
-		}
-	}
-}
-
-function checkProximityToConvertedBlocks() {
-	const distanceThreshold = 1.5;
-
-	for (let i = 0; i < convertedBlocks.length; i++) {
-		const blockData = convertedBlocks[i];
-		const block = blockData.block;
-
-		if (carriedBlock === block) continue;
-
-		const distance = Math.sqrt(
-			Math.pow(hakkunX - block.position.x, 2) +
-			Math.pow(hakkunY - block.position.y, 2) +
-			Math.pow(hakkunZ - block.position.z, 2)
-		);
-
-		if (distance < distanceThreshold) {
-			const blockTopY = block.position.y + 0.6;
-			if (hakkunY <= blockTopY && hakkunYV <= 0) {
-				hakkunY = blockTopY;
-				hakkunYV = 0;
-				onGround = true;
-				isJumping = false;
-			}
-
-			if (pressedKeys[8]) {
-				const injectedColor = hakkun_head.material.color.getHex();
-
-				block.material.color.setHex(injectedColor);
+					block_wire.material.color.setHex(injectedColor);
+					switchToSolid();
+				}
 
 				const colorHex = injectedColor;
 				if (colorHex === 0xff0000) {
-					blockData.color = "red";
+					block_solid.material = red_material;
+					blockColor = "red";
 				} else if (colorHex === 0xffff00) {
-					blockData.color = "yellow";
+					block_solid.material = yellow_material;
+					blockColor = "yellow";
 				} else if (colorHex === 0x0000ff) {
-					blockData.color = "blue";
+					block_solid.material = blue_material;
+					blockColor = "blue";
 				}
 			}
-
-			if (pressedKeys[9] && !carryingBlock) {
-				carryingBlock = true;
-				carriedBlock = block;
-				carriedBlockOriginalY = block.position.y;
-
-				carriedBlockColor = blockData.color;
-
-				convertedBlocks.splice(i, 1);
-				i--;
-				console.log("Converted block picked up");
-			}
 		}
 	}
-}
-
-function updateCarriedBlockPosition() {
-	if (carryingBlock && carriedBlock) {
-		const offsetDistance = 1.2;
-		const offsetX = Math.sin(hakkunAngle) * offsetDistance;
-		const offsetZ = Math.cos(hakkunAngle) * offsetDistance;
-
-		carriedBlock.position.set(
-			hakkunX + offsetX,
-			carriedBlockOriginalY,
-			hakkunZ + offsetZ
-		);
-	}
-}
-
-function placeCarriedBlock() {
-	if (carryingBlock && carriedBlock) {
-		if (carriedBlock.type === "Mesh") {
-
-			const exactPosition = carriedBlock.position.clone();
-
-			convertedBlocks.push({
-				block: carriedBlock,
-				color: carriedBlockColor,
-				mimicking: true,
-				originalPosition: exactPosition,
-				fixedY: exactPosition.y
-			});
-		}
-
-		carryingBlock = false;
-		carriedBlock = null;
+	else {
+		onBlock = false;
 	}
 }
 
@@ -761,24 +735,22 @@ function updateConvertedBlocksPositions() {
 	for (let i = 0; i < convertedBlocks.length; i++) {
 		const blockData = convertedBlocks[i];
 
-		if (blockData.block === carriedBlock || !blockData.mimicking) continue;
+		const colorType = blockData.block.color;
+		if (colorType === 0xff0000) {
+			let blockColor = "red";
+		} else if (colorType === 0xffff00) {
+			let blockColor = "yellow";
+		} else if (colorType === 0x0000ff) {
+			let blockColor = "blue";
+		}
+		if (blockColor && colorReference[blockColor]) {
+			const referenceFunction = colorReference[blockColor];
 
-		const colorType = blockData.color;
-		if (colorType && colorReferenceBlocks[colorType]) {
-			const referenceBlock = colorReferenceBlocks[colorType];
-
-			const baseX = colorType === "yellow" ? 0 : (colorType === "red" ? 5 : -2);
-			const baseZ = colorType === "yellow" ? 0 : (colorType === "red" ? 3 : 4);
-
-			const offsetX = referenceBlock.position.x - baseX;
-			const offsetZ = referenceBlock.position.z - baseZ;
-			const offsetY = referenceBlock.position.y - 0.6;
-
-			blockData.block.position.set(
-				blockData.originalPosition.x + offsetX,
-				blockData.originalPosition.y + offsetY,
-				blockData.originalPosition.z + offsetZ
-			);
+			const offsetX = blockData.originalPosition.x;
+			const offsetZ = blockData.originalPosition.y;
+			const offsetY = blockData.originalPosition.z;
+			
+			referenceFunction(blockData.block, blockData.startTime, offsetX, offsetY, offsetZ);
 		}
 	}
 }
@@ -867,8 +839,6 @@ function createUIElements() {
 createUIElements();
 updateGoalsDisplay();
 
-
-
 // 4. Add these level management functions
 function updateGoalsDisplay() {
   const goalsDisplay = document.getElementById('goalsDisplay');
@@ -877,7 +847,7 @@ function updateGoalsDisplay() {
   let goalText = "Goal: Unknown"; // Default in case of an issue
 
   if (currentLevel === 1) {
-    goalText = "Goal: Touch the sunshard";
+    goalText = "Goal: Use a red block to reach the sunshard";
   } else if (currentLevel === 2) {
     goalText = "Goal: Level2";
   } else if (currentLevel === 3) {
@@ -917,6 +887,17 @@ function initializeLevel(levelIndex) {
   isJumping = false;
   onGround = false;
 
+  //Place sun shard based on defined position in level
+  shardPos = [levelConfig.sunPosition.x,
+			  levelConfig.sunPosition.y,
+		      levelConfig.sunPosition.z];
+  
+  //Reset the pot
+  pot.position.set(levelConfig.potPosition.x,
+				 levelConfig.potPosition.y,
+				 levelConfig.potPosition.z);
+  potMaterial.color.set(levelConfig.potColor);
+  
   // Update the level display UI immediately
   const levelDisplay = document.getElementById('levelDisplay');
   if (levelDisplay) {
@@ -926,7 +907,6 @@ function initializeLevel(levelIndex) {
   updateGoalsDisplay(); 
   gameState = "playing";
 }
-
 
 
 function checkLevelCompletion() {
@@ -943,13 +923,15 @@ function completeLevel() {
   transitionTimer = transitionDuration
 }
 
+//When this is called, the camera will center on Hakkun
 function centerOnHakkun() {
 	camera.position.set(hakkunX + -7 * Math.sin(hakkunAngle), hakkunY + 2, hakkunZ + 7 * Math.cos(hakkunAngle));
 	controls.target.set(hakkunX, hakkunY, hakkunZ);
 }
+//This is the angle Hakkun is displayed facing
+let hakkunDisplayAngle = (Math.PI / 2);
 
-let lastPressAngleOffset = (Math.PI / 2);
-
+//Execute every frame
 function animate() {
 	//Handle screen resize:
 	//Resize the renderer on every frame
@@ -961,25 +943,37 @@ function animate() {
 	
 	//Render the scene
 	renderer.render(scene, camera);
+	//Update controls
 	controls.update();
+	//Advance the clock
 	delta_animation_time = clock.getDelta();
 	animation_time += delta_animation_time;
 
 	// Handle different game states
 	if (gameState === "playing") {
 		// Existing game logic
+		//If Hakkun isn't on a ground:
 		if (!onGround) {
+			//He is affected by gravity
 			hakkunYV -= gravity1;
 			hakkunY += hakkunYV;
+			//The camera will also stick to him
+			centerOnHakkun();
+		}
+		//If Hakkun is on a block, the camera will also stick to him
+		if (onBlock){
 			centerOnHakkun();
 		}
 
+		//If Hakkun is below the world's ground level
 		if (hakkunY <= 0) {
+			//Snap him up to the ground
 			hakkunY = 0;
 			hakkunYV = 0;
 			onGround = true;
 			isJumping = false;
 		}
+		//Jump logic
 		if (pressedKeys[6] && onGround) {
 			isJumping = true;
 			onGround = false;
@@ -987,49 +981,69 @@ function animate() {
 			centerOnHakkun();
 		}
 
+		//HTML element to display Hakkun's position
 		const positionInfo = document.getElementById("positionInfo");
 		if (positionInfo) {
 			positionInfo.innerHTML = `Position: X: ${hakkunX.toFixed(2)}, Y: ${hakkunY.toFixed(2)}, Z: ${hakkunZ.toFixed(2)}`;
 		}
 
+		//Hakkun's rotation
 		if (pressedKeys[4]) {
-			hakkunAngle -= 0.02;
+			hakkunAngle -= 0.03;
 			centerOnHakkun();
 		}
 		if (pressedKeys[5]) {
-			hakkunAngle += 0.02;
+			hakkunAngle += 0.03;
 			centerOnHakkun();
 		}
-
+		
+		//Handle Hakkun's movement when keys are pressed
 		hakkunXV = 0; hakkunZV = 0;
 		if (pressedKeys[0]) {
 			hakkunZV += -0.1 * Math.cos(hakkunAngle);
 			hakkunXV += 0.1 * Math.sin(hakkunAngle);
-			lastPressAngleOffset = (Math.PI / 2);
+			hakkunDisplayAngle = (Math.PI / 2);
 			centerOnHakkun();
 		}
 		if (pressedKeys[1]) {
 			hakkunZV += -0.1 * Math.sin(hakkunAngle);
 			hakkunXV += -0.1 * Math.cos(hakkunAngle);
-			lastPressAngleOffset = (Math.PI);
+			hakkunDisplayAngle = (Math.PI);
 			centerOnHakkun();
 		}
 		if (pressedKeys[2]) {
 			hakkunZV += 0.1 * Math.cos(hakkunAngle);
 			hakkunXV += -0.1 * Math.sin(hakkunAngle);
-			lastPressAngleOffset = -(Math.PI / 2);
+			hakkunDisplayAngle = -(Math.PI / 2);
 			centerOnHakkun();
 		}
 		if (pressedKeys[3]) {
 			hakkunZV += 0.1 * Math.sin(hakkunAngle);
 			hakkunXV += 0.1 * Math.cos(hakkunAngle);
-			lastPressAngleOffset = 0;
+			hakkunDisplayAngle = 0;
 			centerOnHakkun();
 		}
+		//Display Hakkun's angle correctly
+		// <^ diagonal
+		if (pressedKeys[0] && pressedKeys[1]) {
+			hakkunDisplayAngle = (3 * Math.PI / 4);
+		}
+		// <v diagonal
+		if (pressedKeys[2] && pressedKeys[1]) {
+			hakkunDisplayAngle = -(3 * Math.PI / 4);
+		}
+		// v> diagonal
+		if (pressedKeys[2] && pressedKeys[3]) {
+			hakkunDisplayAngle = -(Math.PI / 4);
+		}
+		// ^> diagonal
+		if (pressedKeys[0] && pressedKeys[3]) {
+			hakkunDisplayAngle = (Math.PI / 4);
+		}
 
+		//Start music when W key is pressed
 		if (pressedKeys[0] && !musicStarted) {
 			musicStarted = true;
-
 			const listener = new THREE.AudioListener();
 			camera.add(listener);
 			const sound = new THREE.Audio(listener);
@@ -1041,18 +1055,19 @@ function animate() {
 				sound.play();
 			});
 		}
-
+		
+		//Move Hakkun's X and Z positions
 		hakkunX += hakkunXV;
 		hakkunZ += hakkunZV;
 
+		//Move & rotate Hakkun's model
 		hakkun_body.position.set(hakkunX, hakkunY + 0.6, hakkunZ);
-		hakkun_body.rotation.y = -hakkunAngle + lastPressAngleOffset;
-
+		hakkun_body.rotation.y = -hakkunAngle + hakkunDisplayAngle;
+		
+		//Pot color absorb logic
 		checkProximityAndAbsorbColor();
+		//Block inject color logic
 		checkProximityAndInjectColor();
-		checkProximityToConvertedBlocks();
-
-		updateCarriedBlockPosition();
 
 		updateConvertedBlocksPositions();
 		
@@ -1135,10 +1150,6 @@ function animate() {
 	model_transformation.premultiply(translationMatrix(shardPos[0], shardPos[1] - 0.1 * Math.cos(animation_time), shardPos[2]));
 	sunWire.matrix.copy(model_transformation);
 
-	yellowblock.position.x = Math.sin(-animation_time * 2) * 2;
-	yellowblock.position.y = 2.6 + Math.sin(animation_time * 2) * 2;
-	redblock.position.y = 2.6 + (Math.sin(-animation_time * 2)) * 2;
-	blueblock.position.x = Math.sin(animation_time * 2) * 3;
 }
 renderer.setAnimationLoop(animate);
 
@@ -1175,12 +1186,6 @@ function onKeyPress(event) {
 		case 'x':
 			pressedKeys[8] = true;
 			break;
-		case 'v':
-			pressedKeys[9] = true;
-			break;
-		case 'b':
-			placeCarriedBlock();
-			break;
 		default:
 			console.log(`Key ${event.key} pressed`);
 	}
@@ -1214,9 +1219,6 @@ function onKeyRelease(event) {
 			break;
 		case 'x':
 			pressedKeys[8] = false;
-			break;
-		case 'v':
-			pressedKeys[9] = false;
 			break;
 	}
 }
