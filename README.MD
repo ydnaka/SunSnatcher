@@ -24,3 +24,13 @@ D - strafe right
 Q - turn camera to the left
 
 E - turn camera to the right
+
+V - grab block
+
+B - place block
+
+C - absorb color
+
+X - inject color
+
+
