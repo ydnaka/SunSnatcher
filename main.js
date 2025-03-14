@@ -167,7 +167,7 @@ const sun_shard_geometry = new THREE.OctahedronGeometry();
 const sun_wire_geometry = new THREE.TetrahedronGeometry(1);
 
 //Define Hakkun model geometry (NOT DONE)
-const hakkunHeadTexture = new THREE.TextureLoader().load('textures/hakkunface.png');
+const hakkunHeadTexture = new THREE.TextureLoader().load('textures/hakkunfaceALT.png');
 hakkunHeadTexture.wrapS = THREE.RepeatWrapping;
 hakkunHeadTexture.wrapT = THREE.RepeatWrapping;
 //hakkunHeadTexture.repeat.set(0.5,0.5);
@@ -189,6 +189,29 @@ const hakkun_body_material = new THREE.MeshPhongMaterial({
 	color: 0xffffff,
 	
 })
+
+//hakkun nose
+const hakkunNoseGeometry = new THREE.ConeGeometry(0.1, 0.8);
+const hakkunNoseMaterial = new THREE.MeshBasicMaterial({
+	color: 0x000000,
+})
+const hakkunNose = new THREE.Mesh(hakkunNoseGeometry, hakkunNoseMaterial);
+hakkunNose.rotateZ(Math.PI * 1.5);
+hakkunNose.translateY(0.8);
+
+//hakkun arms
+const armGeometry = new THREE.CapsuleGeometry(0.15, 0.2, 3, 3);
+const armMaterial = new THREE.MeshBasicMaterial({
+	color: 0x000000,
+})
+
+const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+rightArm.translateZ(0.5);
+rightArm.rotateX(-0.4);
+const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+leftArm.translateZ(-0.55);
+leftArm.rotateX(0.4);
+
  
 //Hakkun slightly lights up his surroundings
 const HakkunLight = new THREE.PointLight(0xffffff, 0.5, 100);
@@ -199,12 +222,15 @@ scene.add(HakkunLight);
 let hakkun_head_wire = new THREE.Mesh(hakkun_head_geometry, hakkun_head_material);
 //scene.add(hakkun_head_fill);
 scene.add(hakkun_head_wire);
+hakkun_head_wire.add(hakkunNose);
 
 //let hakkun_body_fill = new THREE.Mesh( hakkun_body_geometry, red_material );
 //let hakkun_body_wire = new THREE.LineSegments( hakkun_body_geometry );
 let hakkun_body_wire = new THREE.Mesh(hakkun_body_geometry, hakkun_body_material);
 //scene.add(hakkun_body_fill);
 scene.add(hakkun_body_wire);
+hakkun_body_wire.add(leftArm);
+hakkun_body_wire.add(rightArm);
 
 //The level plane
 let level = new THREE.Mesh(level_plane_geometry, grass_material);
