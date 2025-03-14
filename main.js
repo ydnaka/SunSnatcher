@@ -868,7 +868,9 @@ function initializeLevel(levelIndex) {
 
   currentLevel = levelIndex; 
 
-  // Reset Hakkun position
+  // Reset Hakkun position & color
+  hakkun_head.material.color.setHex(0xFFFFFF);
+  hakkun_body.material.color.setHex(0xFFFFFF);
   hakkunX = levelConfig.hakkunStartPosition.x;
   hakkunY = levelConfig.hakkunStartPosition.y;
   hakkunZ = levelConfig.hakkunStartPosition.z;
