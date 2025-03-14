@@ -48,7 +48,7 @@ controls.target.set(0, 5, 0);
 //Sets our current level to 1
 let currentLevel = 1;
 //We have 10 levels, so the maximum level is 10
-let maxLevels = 10;
+let maxLevels = 3;
 //The game state starts as "playing"
 //other gamestates are "transition" and "complete"
 let gameState = "playing";
