@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { shininess } from 'three/tsl';
 
 const scene = new THREE.Scene();
 const sky_texture = new THREE.TextureLoader().load( "textures/background.png" );
@@ -34,14 +35,25 @@ scene.add(zAxis);
 const grassTexture = new THREE.TextureLoader().load('textures/grass.png');
 grassTexture.wrapS = THREE.RepeatWrapping;
 grassTexture.wrapT = THREE.RepeatWrapping;
-grassTexture.repeat.set(16, 16); // Adjust for tiling effect
+grassTexture.repeat.set(16,16); 
 
 //red brick texture
-const redBrickTexture = 
+const redBrickTexture = new THREE.TextureLoader().load('textures/redbrick.png');
+redBrickTexture.wrapS = THREE.RepeatWrapping;
+redBrickTexture.wrapT = THREE.RepeatWrapping;
+redBrickTexture.repeat.set(0.5,0.5);
 
 //yellow brick texture
+const yellowBrickTexture = new THREE.TextureLoader().load('textures/redbrick.png');
+yellowBrickTexture.wrapS = THREE.RepeatWrapping;
+yellowBrickTexture.wrapT = THREE.RepeatWrapping;
+yellowBrickTexture.repeat.set(0.5,0.5);
 
 //blue brick texture
+const blueBrickTexture = new THREE.TextureLoader().load('textures/whitebrick.png');
+blueBrickTexture.wrapS = THREE.RepeatWrapping;
+blueBrickTexture.wrapT = THREE.RepeatWrapping;
+blueBrickTexture.repeat.set(0.5,0.5);
 
 // Setting up the lights
 
@@ -54,19 +66,22 @@ scene.add(ambientLight);
 
 //defined colored phong materials for blocks and Hakkun
 const red_material = new THREE.MeshPhongMaterial({
-    color: 0xff0000, // Red color
-    shininess: 100   // Shininess of the material
+    color: 0x9f0000, // Red color
+    shininess: 50,   // Shininess of the material
+	map: redBrickTexture
 });
 const blue_material = new THREE.MeshPhongMaterial({
-    color: 0x0000ff, // Blue color
-    shininess: 100   
+    color: 0x0082ff, // Blue color
+    shininess: 50,
+	map: blueBrickTexture   
 });
 const yellow_material = new THREE.MeshPhongMaterial({
     color: 0xffff00, // Yellow color
-    shininess: 100   
+    shininess: 50,
+	map: yellowBrickTexture   
 });
 const grass_material = new THREE.MeshPhongMaterial({
-    color: 0x00ff00, // Green color
+    color: 0x00f200, // Green color
     shininess: 100,  
 	map: grassTexture 
 });
@@ -145,20 +160,42 @@ const sun_shard_geometry = new THREE.OctahedronGeometry();
 const sun_wire_geometry = new THREE.TetrahedronGeometry(1);
 
 //Define Hakkun model geometry (NOT DONE)
+const hakkunHeadTexture = new THREE.TextureLoader().load('textures/hakkunface.png');
+hakkunHeadTexture.wrapS = THREE.RepeatWrapping;
+hakkunHeadTexture.wrapT = THREE.RepeatWrapping;
+//hakkunHeadTexture.repeat.set(0.5,0.5);
+
 const hakkun_head_geometry = new THREE.SphereGeometry(0.5, 6, 6);
-const hakkun_body_geometry = new THREE.CapsuleGeometry(0.35, 0.5, 2, 8);
+const hakkun_head_material = new THREE.MeshPhongMaterial({
+	transparent: true,
+	opacity: 0.8,
+	shininess: 100, 
+	color: 0xffffff,
+	map: hakkunHeadTexture
+})
+//const hakkun_body_geometry = new THREE.CapsuleGeometry(0.35, 0.5, 2, 8);
+const hakkun_body_geometry = new THREE.SphereGeometry(0.55, 6.5, 6.5);
+const hakkun_body_material = new THREE.MeshPhongMaterial({
+	transparent: true,
+	opacity: 0.8,
+	shininess: 100,
+	color: 0xffffff,
+	
+})
  
 //Hakkun slightly lights up his surroundings
 const HakkunLight = new THREE.PointLight(0xffffff, 0.5, 100);
 scene.add(HakkunLight);
 
 //let hakkun_head_fill = new THREE.Mesh( hakkun_head_geometry, red_material );
-let hakkun_head_wire = new THREE.LineSegments( hakkun_head_geometry );
+//let hakkun_head_wire = new THREE.LineSegments( hakkun_head_geometry );
+let hakkun_head_wire = new THREE.Mesh(hakkun_head_geometry, hakkun_head_material);
 //scene.add(hakkun_head_fill);
 scene.add(hakkun_head_wire);
 
 //let hakkun_body_fill = new THREE.Mesh( hakkun_body_geometry, red_material );
-let hakkun_body_wire = new THREE.LineSegments( hakkun_body_geometry );
+//let hakkun_body_wire = new THREE.LineSegments( hakkun_body_geometry );
+let hakkun_body_wire = new THREE.Mesh(hakkun_body_geometry, hakkun_body_material);
 //scene.add(hakkun_body_fill);
 scene.add(hakkun_body_wire);
 
@@ -294,6 +331,8 @@ function createBlock(material, x, y, z){
 
 const yellowblock = createBlock(yellow_material, 0, 0.6, 0);
 const redblock = createBlock(red_material, 5, 0.6, 3);
+//redblock.material.map = redBrickTexture;
+//redblock.material.needsUpdate = true;
 const blueblock = createBlock(blue_material, -2, 0.6, 4);
 const block_wire = new THREE.LineSegments( wirecube_geometry );
 block_wire.position.set(-4 , 0.61, -1);
