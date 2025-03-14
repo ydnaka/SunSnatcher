@@ -1,29 +1,65 @@
+//Sun Snatcher - Final Demo Version
+//Project by Andy Kasbarian, Dean Ali, Htet Min Khant, and Jack Criminger
+//For CS 174A - Winter 2025
+
+/* To be done:
+ - Finish concrete material and create concrete blocks
+ - Allow collision with concrete blocks
+ - Slow down Hakkun & his jumps
+ - Smoother camera controls (see Assignment 4)
+ - Block motion offset by their creation time
+ - WASD changes Hakkun's facing direction
+ - Implement levels!
+*/
+
+/* Scene & camera setup */
+
+//Imports three.js for 3D graphics & animation
 import * as THREE from 'three';
+//Imports Orbit Controls for camera control
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+//Imports shininess for materials
 import { shininess } from 'three/tsl';
 
+//Creates the scene for our project
 const scene = new THREE.Scene();
+//Loads the sky texture
 const sky_texture = new THREE.TextureLoader().load("textures/background.png");
+//Sets the scene's background to the sky texture
 scene.background = sky_texture;
+//Sets the background intensity to 0.2 to make it more dim
 scene.backgroundIntensity = 0.2;
 
-
-let currentLevel = 1;
-let maxLevels = 10;
-let gameState = "playing"; 
-let transitionTimer = 0;
-let transitionDuration = 3; 
-
+//The camera and renderer are necessary to render our scene
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
+//Append the renderer to the DOM so that it is displayed on the webpage
 document.body.appendChild(renderer.domElement);
 
+//Declare OrbitControls
 const controls = new OrbitControls(camera, renderer.domElement);
+//Declare camera position
 camera.position.set(0, 5, 10);
+//Declare camera target
 controls.target.set(0, 5, 0);
 
+/* Level selector initialization */
+
+//Sets our current level to 1
+let currentLevel = 1;
+//We have 10 levels, so the maximum level is 10
+let maxLevels = 10;
+//The game state starts as "playing"
+//other gamestates are "transition" and "complete"
+let gameState = "playing";
+
+//The transition timer is used to count down 3 seconds before the next level begins
+let transitionTimer = 0;
+//This defines the duration of the transition timer.
+let transitionDuration = 3; 
+
+//The following code creates visible X, Y, and Z axes. We do not need it in the final project
+/*
 const createAxisLine = (color, start, end) => {
 	const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
 	const material = new THREE.LineBasicMaterial({ color: color });
@@ -35,78 +71,92 @@ const zAxis = createAxisLine(0x0000ff, new THREE.Vector3(0, 0, 0), new THREE.Vec
 scene.add(xAxis);
 scene.add(yAxis);
 scene.add(zAxis);
+*/
 
+/* Texture & material declarations */
 
-//grass texture
+//Grass texture - for the ground
+//Load grass texture
 const grassTexture = new THREE.TextureLoader().load('textures/grass.png');
+//Allow texture to wrap
 grassTexture.wrapS = THREE.RepeatWrapping;
 grassTexture.wrapT = THREE.RepeatWrapping;
+//Set texture repeat range - fills in more texture units in the same area
 grassTexture.repeat.set(16,16); 
 
-//red brick texture
+//Red Brick texture
 const redBrickTexture = new THREE.TextureLoader().load('textures/redbrick.png');
 redBrickTexture.wrapS = THREE.RepeatWrapping;
 redBrickTexture.wrapT = THREE.RepeatWrapping;
 redBrickTexture.repeat.set(0.5,0.5);
 
-//yellow brick texture
+//Yellow Brick texture
 const yellowBrickTexture = new THREE.TextureLoader().load('textures/redbrick.png');
 yellowBrickTexture.wrapS = THREE.RepeatWrapping;
 yellowBrickTexture.wrapT = THREE.RepeatWrapping;
 yellowBrickTexture.repeat.set(0.5,0.5);
 
-//blue brick texture
+//Blue Brick texture
 const blueBrickTexture = new THREE.TextureLoader().load('textures/whitebrick.png');
 blueBrickTexture.wrapS = THREE.RepeatWrapping;
 blueBrickTexture.wrapT = THREE.RepeatWrapping;
 blueBrickTexture.repeat.set(0.5,0.5);
 
-//sun shard texture
+//Sun Shard texture
 const sunTexture = new THREE.TextureLoader().load('textures/sun.png');
 sunTexture.wrapS = THREE.RepeatWrapping;
 sunTexture.wrapT = THREE.RepeatWrapping;
 sunTexture.repeat.set(0.5,0.5);
 
-// Setting up the lights
-
-/*const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(0.5, .0, 1.0).normalize();
-scene.add(directionalLight);
-*/ 
-const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
-
-scene.add(ambientLight);
-
+//Create Red Brick material
 const red_material = new THREE.MeshPhongMaterial({
     color: 0x9f0000, // Red color
     shininess: 50,   // Shininess of the material
-	map: redBrickTexture
+	map: redBrickTexture //Mapped texture
 });
+//Blue Brick material
 const blue_material = new THREE.MeshPhongMaterial({
     color: 0x0082ff, // Blue color
     shininess: 50,
 	map: blueBrickTexture   
 });
+//Yellow Brick Material
 const yellow_material = new THREE.MeshPhongMaterial({
     color: 0xffff00, // Yellow color
     shininess: 50,
 	map: yellowBrickTexture   
 });
+//Grass Material
 const grass_material = new THREE.MeshPhongMaterial({
     color: 0x00f200, // Green color
     shininess: 100,  
 	map: grassTexture 
 });
+//Sun Material
 const sun_material = new THREE.MeshBasicMaterial({
     color: 0xff8800, // orange-ish color
 	map: sunTexture
 });
+//WIP - Concrete material, for noninteractable level geometry
+const concrete_material = new THREE.MeshPhongMaterial({
+	color: 0x404040
+});
 
+/* Create scene objects */
+
+//Ambient light - lights up everything even when there are no other light sources
+//This is so we can see in the dark
+const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
+//Add the ambient light to the scene
+scene.add(ambientLight);
+
+//Length/size of bricks from the center of each face
 const l = 0.6;
+//Each block will be 2l x 2l x 2l
 const cube_geometry = new THREE.BoxGeometry(2 * l, 2 * l, 2 * l);
 
+//This just defines the wireframe cube's lines for each face.
 const wirecube_vertices = new Float32Array([
-
 	-l, -l, l,
 	l, -l, l,
 	l, -l, l,
@@ -162,88 +212,176 @@ const wirecube_vertices = new Float32Array([
 	l, -l, -l
 ]);
 
+//Create wireframe cube geometry based on the defined lines/vertices
 const wirecube_geometry = new THREE.BufferGeometry();
 wirecube_geometry.setAttribute('position', new THREE.BufferAttribute(wirecube_vertices, 3));
 
-const level_plane_geometry = new THREE.PlaneGeometry(100, 100);
-
+// Create sun shard geometry
 const sun_shard_geometry = new THREE.OctahedronGeometry();
 const sun_wire_geometry = new THREE.TetrahedronGeometry(1);
 
-//Define Hakkun model geometry (NOT DONE)
+//Define Hakkun model geometry
+//Load Hakkun's head (face) texture
 const hakkunHeadTexture = new THREE.TextureLoader().load('textures/hakkunfaceALT.png');
 hakkunHeadTexture.wrapS = THREE.RepeatWrapping;
 hakkunHeadTexture.wrapT = THREE.RepeatWrapping;
 //hakkunHeadTexture.repeat.set(0.5,0.5);
 
+//Define Hakkun's head geometry
 const hakkun_head_geometry = new THREE.SphereGeometry(0.5, 6, 6);
+//Define Hakkun's head material
 const hakkun_head_material = new THREE.MeshPhongMaterial({
 	transparent: true,
-	opacity: 0.8,
-	shininess: 100, 
-	color: 0xffffff,
-	map: hakkunHeadTexture
-})
-//const hakkun_body_geometry = new THREE.CapsuleGeometry(0.35, 0.5, 2, 8);
+	opacity: 0.8, //Shoudn't be fully opaque
+	shininess: 100, //Shininess
+	color: 0xffffff, //Color = white initially
+	map: hakkunHeadTexture // Map as HakkunHeadTexture
+});
+//Define Hakkun's body geometry
 const hakkun_body_geometry = new THREE.SphereGeometry(0.55, 6.5, 6.5);
+//Define Hakkun's body material
 const hakkun_body_material = new THREE.MeshPhongMaterial({
 	transparent: true,
 	opacity: 0.8,
 	shininess: 100,
-	color: 0xffffff,
-	
-})
+	color: 0xffffff
+});
 
-//hakkun nose
+//Define Hakkun's nose geometry
 const hakkunNoseGeometry = new THREE.ConeGeometry(0.1, 0.8);
-const hakkunNoseMaterial = new THREE.MeshBasicMaterial({
-	color: 0x000000,
-})
-const hakkunNose = new THREE.Mesh(hakkunNoseGeometry, hakkunNoseMaterial);
+//Same material is used for nose and arms
+const hakkunNoseArmsMaterial = new THREE.MeshBasicMaterial({
+	color: 0x000000 //Black
+});
+//Create & position Hakkun's nose
+const hakkunNose = new THREE.Mesh(hakkunNoseGeometry, hakkunNoseArmsMaterial);
 hakkunNose.rotateZ(Math.PI * 1.5);
 hakkunNose.translateY(0.8);
 
-//hakkun arms
+//Define Hakkun's arm geometry
 const armGeometry = new THREE.CapsuleGeometry(0.15, 0.2, 3, 3);
-const armMaterial = new THREE.MeshBasicMaterial({
-	color: 0x000000,
-})
 
-const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+//Create & position Hakkun's arms
+const rightArm = new THREE.Mesh(armGeometry, hakkunNoseArmsMaterial);
 rightArm.translateZ(0.5);
 rightArm.rotateX(-0.4);
-const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+const leftArm = new THREE.Mesh(armGeometry, hakkunNoseArmsMaterial);
 leftArm.translateZ(-0.55);
 leftArm.rotateX(0.4);
 
- 
+//Define a point light at Hakkun's position
 //Hakkun slightly lights up his surroundings
 const HakkunLight = new THREE.PointLight(0xffffff, 0.5, 100);
-scene.add(HakkunLight);
+HakkunLight.translateY(-0.1);
 
-//let hakkun_head_fill = new THREE.Mesh( hakkun_head_geometry, red_material );
-//let hakkun_head_wire = new THREE.LineSegments( hakkun_head_geometry );
-let hakkun_head_wire = new THREE.Mesh(hakkun_head_geometry, hakkun_head_material);
-//scene.add(hakkun_head_fill);
-scene.add(hakkun_head_wire);
-hakkun_head_wire.add(hakkunNose);
+// Create Hakkun's head
+const hakkun_head = new THREE.Mesh(hakkun_head_geometry, hakkun_head_material);
+hakkun_head.translateY(1.0);
 
-//let hakkun_body_fill = new THREE.Mesh( hakkun_body_geometry, red_material );
-//let hakkun_body_wire = new THREE.LineSegments( hakkun_body_geometry );
-let hakkun_body_wire = new THREE.Mesh(hakkun_body_geometry, hakkun_body_material);
-//scene.add(hakkun_body_fill);
-scene.add(hakkun_body_wire);
-hakkun_body_wire.add(leftArm);
-hakkun_body_wire.add(rightArm);
+//Create Hakkun's body
+const hakkun_body = new THREE.Mesh(hakkun_body_geometry, hakkun_body_material);
+//Add Hakkun's body to the scene
+scene.add(hakkun_body);
+//Attach Hakkun's arms & point light to his body
+hakkun_body.add(leftArm);
+hakkun_body.add(rightArm);
+hakkun_body.add(HakkunLight);
+//Attach Hakkun's head to his body
+hakkun_body.add(hakkun_head);
+//Attach Hakkun's nose to his head
+hakkun_head.add(hakkunNose);
 
+//Define the level plane geometry
+const level_plane_geometry = new THREE.PlaneGeometry(100, 100);
+//Create the level plane
 let level = new THREE.Mesh(level_plane_geometry, grass_material);
+//Position the level plane to make it flat on the ground
 level.matrixAutoUpdate = false;
 level.matrix.copy(rotationMatrixX(3 * Math.PI / 2));
+//Add level to the scene
 scene.add(level);
 level.material.color.setRGB(0, 1, 0);
 
+/* Level configurations */
+const levelConfigurations = [
+  // Level 1
+  {
+    hakkunStartPosition: { x: 0, y: 4, z: 0 }, // Start near the shard
+    blockPositions: [],
+    potPosition: { x: 0, y: 0, z: 3 }, 
+    potColor: 0xff0000, 
+    sunPosition: { x: 1, y: 10, z: 3 }, 
+
+    goalCondition: function() {
+        // Check distance between Hakkun and the sun shard
+        const distance = Math.sqrt(
+            Math.pow(hakkunX - shardPos[0], 2) +
+            Math.pow(hakkunY - shardPos[1], 2) +
+            Math.pow(hakkunZ - shardPos[2], 2)
+        );
+
+        return distance < 1.5; // Complete level when close enough to the sun shard
+    },
+
+    message: "Level 1 complete! You have found the Sun Shard!"
+  },
+  
+  // Level 2
+  {
+    
+     
+  },
+  
+  // Level 3
+  {
+    
+  },
+
+  // Level 4
+  {
+    
+     
+  },
+  
+  // Level 5
+  {
+    
+  },
+
+  // Level 6
+  {
+    
+     
+  },
+  
+  // Level 7
+  {
+    
+  },
+
+  // Level 8
+  {
+    
+     
+  },
+  
+  // Level 9
+  {
+    
+  },
+
+  // Level 10
+  {
+    
+     
+  },
+  
+];
+
+//Declare SunShard (REMOVE THIS, must be defined by level selector)
 let sunShard = new THREE.Mesh(sun_shard_geometry, sun_material);
 let sunWire = new THREE.LineSegments(sun_wire_geometry);
+//SunShard has a light as well
 let sunLight = new THREE.PointLight(0xffffaa, 50, 200);
 sunShard.matrixAutoUpdate = false;
 sunWire.matrixAutoUpdate = false;
@@ -251,6 +389,7 @@ scene.add(sunShard);
 scene.add(sunWire);
 scene.add(sunLight);
 
+//Pot logic (review later)
 const colors = [0xff0000, 0xffff00, 0x0000ff];
 const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
@@ -270,6 +409,7 @@ pot.position.set(0, 0, 3);
 
 scene.add(pot);
 
+//Transformation Matrices
 function translationMatrix(tx, ty, tz) {
 	return new THREE.Matrix4().set(
 		1, 0, 0, tx,
@@ -278,7 +418,6 @@ function translationMatrix(tx, ty, tz) {
 		0, 0, 0, 1
 	);
 }
-
 function rotationMatrixX(theta) {
 	return new THREE.Matrix4().set(
 		1, 0, 0, 0,
@@ -287,7 +426,6 @@ function rotationMatrixX(theta) {
 		0, 0, 0, 1
 	);
 }
-
 function rotationMatrixY(theta) {
 	return new THREE.Matrix4().set(
 		Math.cos(theta), 0, Math.sin(theta), 0,
@@ -296,7 +434,6 @@ function rotationMatrixY(theta) {
 		0, 0, 0, 1
 	);
 }
-
 function rotationMatrixZ(theta) {
 	return new THREE.Matrix4().set(
 		Math.cos(theta), -Math.sin(theta), 0, 0,
@@ -305,7 +442,6 @@ function rotationMatrixZ(theta) {
 		0, 0, 0, 1
 	);
 }
-
 function scalingMatrix(sx, sy, sz) {
 	return new THREE.Matrix4().set(
 		sx, 0, 0, 0,
@@ -315,13 +451,17 @@ function scalingMatrix(sx, sy, sz) {
 	);
 }
 
+//Declare animation time
+//Animation time counts the real seconds passed
 let animation_time = 0;
 let delta_animation_time;
+//Define clock
 const clock = new THREE.Clock();
 
-let hakkunX = 2;
-let hakkunY = 4;
-let hakkunZ = 12;
+//Set Hakkun's initial positions
+let hakkunX = levelConfigurations[currentLevel - 1].hakkunStartPosition.x;
+let hakkunY = levelConfigurations[currentLevel - 1].hakkunStartPosition.y;
+let hakkunZ = levelConfigurations[currentLevel - 1].hakkunStartPosition.z;
 let hakkunAngle = 0;
 let hakkunXV = 0;
 let hakkunZV = 0;
@@ -330,12 +470,15 @@ let isJumping = false;
 let onGround = false;
 const gravity = 0.02;
 const gravity1 = 0.004;
-const jumpVelocity = 0.5;
+const jumpVelocity = 0.4;
 
 let pressedKeys = [false, false, false, false, false, false, false, false, false, false];
 const hakkunA = 0.003;
 
-const shardPos = [1, 4, 3];
+//Place sun shard based on defined position in level
+const shardPos = [levelConfigurations[currentLevel - 1].sunPosition.x,
+			      levelConfigurations[currentLevel - 1].sunPosition.y,
+				  levelConfigurations[currentLevel - 1].sunPosition.z];
 
 let carriedBlockOriginalY = 0;
 
@@ -451,8 +594,8 @@ function checkProximityAndAbsorbColor() {
 		}
 		if (pressedKeys[7]) {
 			const absorbedColor = potMaterial.color.getHex();
-			hakkun_head_wire.material.color.setHex(absorbedColor);
-			hakkun_body_wire.material.color.setHex(absorbedColor);
+			hakkun_head.material.color.setHex(absorbedColor);
+			hakkun_body.material.color.setHex(absorbedColor);
 		}
 	}
 	else {
@@ -488,7 +631,7 @@ function checkProximityAndInjectColor() {
 		}
 
 		if (pressedKeys[8]) {
-			const injectedColor = hakkun_head_wire.material.color.getHex();
+			const injectedColor = hakkun_head.material.color.getHex();
 
 			if (blockIsSolid) {
 
@@ -526,7 +669,6 @@ function checkProximityAndInjectColor() {
 	}
 }
 
-
 function checkProximityToConvertedBlocks() {
 	const distanceThreshold = 1.5;
 
@@ -552,7 +694,7 @@ function checkProximityToConvertedBlocks() {
 			}
 
 			if (pressedKeys[8]) {
-				const injectedColor = hakkun_head_wire.material.color.getHex();
+				const injectedColor = hakkun_head.material.color.getHex();
 
 				block.material.color.setHex(injectedColor);
 
@@ -640,86 +782,10 @@ function updateConvertedBlocksPositions() {
 		}
 	}
 }
-const levelConfigurations = [
-  // Level 1
-  {
-    hakkunStartPosition: { x: 0, y: 4, z: 0 }, // Start near the shard
-    blockPositions: [],
-    potPosition: { x: 0, y: 0, z: 3 }, 
-    potColor: 0xff0000, 
-    sunPosition: { x: 1, y: 4, z: 3 }, 
-
-    goalCondition: function() {
-        // Check distance between Hakkun and the sun shard
-        const distance = Math.sqrt(
-            Math.pow(hakkunX - shardPos[0], 2) +
-            Math.pow(hakkunY - shardPos[1], 2) +
-            Math.pow(hakkunZ - shardPos[2], 2)
-        );
-
-        return distance < 1.5; // Complete level when close enough to the sun shard
-    },
-
-    message: "Level 1 complete! You have found the Sun Shard!"
-  },
-  
-  // Level 2
-  {
-    
-     
-  },
-  
-  // Level 3
-  {
-    
-  },
-
-  // Level 2
-  {
-    
-     
-  },
-  
-  // Level 3
-  {
-    
-  },
-
-  // Level 2
-  {
-    
-     
-  },
-  
-  // Level 3
-  {
-    
-  },
-
-  // Level 2
-  {
-    
-     
-  },
-  
-  // Level 3
-  {
-    
-  },
-
-  // Level 10
-  {
-    
-     
-  },
-  
-];
 
 
 function createUIElements() {
   // Create a container for UI elements
-
-  
 
   const uiContainer = document.createElement('div');
   uiContainer.id = 'uiContainer';
@@ -877,7 +943,23 @@ function completeLevel() {
   transitionTimer = transitionDuration
 }
 
+function centerOnHakkun() {
+	camera.position.set(hakkunX + -7 * Math.sin(hakkunAngle), hakkunY + 2, hakkunZ + 7 * Math.cos(hakkunAngle));
+	controls.target.set(hakkunX, hakkunY, hakkunZ);
+}
+
+let lastPressAngleOffset = (Math.PI / 2);
+
 function animate() {
+	//Handle screen resize:
+	//Resize the renderer on every frame
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	//Set the camera's aspect ratio every frame
+	camera.aspect = window.innerWidth / window.innerHeight;
+	//Update the camera's projection matrix
+	camera.updateProjectionMatrix();
+	
+	//Render the scene
 	renderer.render(scene, camera);
 	controls.update();
 	delta_animation_time = clock.getDelta();
@@ -889,6 +971,7 @@ function animate() {
 		if (!onGround) {
 			hakkunYV -= gravity1;
 			hakkunY += hakkunYV;
+			centerOnHakkun();
 		}
 
 		if (hakkunY <= 0) {
@@ -901,6 +984,7 @@ function animate() {
 			isJumping = true;
 			onGround = false;
 			hakkunYV = jumpVelocity;
+			centerOnHakkun();
 		}
 
 		const positionInfo = document.getElementById("positionInfo");
@@ -908,27 +992,39 @@ function animate() {
 			positionInfo.innerHTML = `Position: X: ${hakkunX.toFixed(2)}, Y: ${hakkunY.toFixed(2)}, Z: ${hakkunZ.toFixed(2)}`;
 		}
 
-		if (pressedKeys[4]) { hakkunAngle -= 0.02; }
-		if (pressedKeys[5]) { hakkunAngle += 0.02; }
-		camera.position.set(hakkunX + -7 * Math.sin(hakkunAngle), hakkunY + 2, hakkunZ + 7 * Math.cos(hakkunAngle));
-		controls.target.set(hakkunX, hakkunY, hakkunZ);
+		if (pressedKeys[4]) {
+			hakkunAngle -= 0.02;
+			centerOnHakkun();
+		}
+		if (pressedKeys[5]) {
+			hakkunAngle += 0.02;
+			centerOnHakkun();
+		}
 
 		hakkunXV = 0; hakkunZV = 0;
 		if (pressedKeys[0]) {
 			hakkunZV += -0.1 * Math.cos(hakkunAngle);
 			hakkunXV += 0.1 * Math.sin(hakkunAngle);
+			lastPressAngleOffset = (Math.PI / 2);
+			centerOnHakkun();
 		}
 		if (pressedKeys[1]) {
 			hakkunZV += -0.1 * Math.sin(hakkunAngle);
 			hakkunXV += -0.1 * Math.cos(hakkunAngle);
+			lastPressAngleOffset = (Math.PI);
+			centerOnHakkun();
 		}
 		if (pressedKeys[2]) {
 			hakkunZV += 0.1 * Math.cos(hakkunAngle);
 			hakkunXV += -0.1 * Math.sin(hakkunAngle);
+			lastPressAngleOffset = -(Math.PI / 2);
+			centerOnHakkun();
 		}
 		if (pressedKeys[3]) {
 			hakkunZV += 0.1 * Math.sin(hakkunAngle);
 			hakkunXV += 0.1 * Math.cos(hakkunAngle);
+			lastPressAngleOffset = 0;
+			centerOnHakkun();
 		}
 
 		if (pressedKeys[0] && !musicStarted) {
@@ -949,9 +1045,8 @@ function animate() {
 		hakkunX += hakkunXV;
 		hakkunZ += hakkunZV;
 
-		HakkunLight.position.set(hakkunX, hakkunY + 0.7, hakkunZ);
-		hakkun_head_wire.position.set(hakkunX, hakkunY + 1.6, hakkunZ);
-		hakkun_body_wire.position.set(hakkunX, hakkunY + 0.6, hakkunZ);
+		hakkun_body.position.set(hakkunX, hakkunY + 0.6, hakkunZ);
+		hakkun_body.rotation.y = -hakkunAngle + lastPressAngleOffset;
 
 		checkProximityAndAbsorbColor();
 		checkProximityAndInjectColor();
