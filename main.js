@@ -364,11 +364,10 @@ const levelConfigurations = [
             Math.pow(hakkunY - shardPos[1], 2) +
             Math.pow(hakkunZ - shardPos[2], 2)
         );
-
         return distance < 1.5; // Complete level when close enough to the sun shard
     },
 
-    message: "Level 2 complete! You have found the Sun Shard!"
+    message: "Level 3 complete! You have found the Sun Shard!"
      
   },
 
@@ -518,7 +517,7 @@ const gravity1 = 0.004;
 const jumpVelocity = 0.4;
 
 // W, A, S, D, Q, E, "space", c, x
-let pressedKeys = [false, false, false, false, false, false, false, false];
+let pressedKeys = [false, false, false, false, false, false, false, false, false, false];
 const hakkunA = 0.003;
 
 //Place sun shard based on defined position in level
@@ -840,11 +839,11 @@ function updateGoalsDisplay() {
   let goalText = "Goal: Unknown"; // Default in case of an issue
 
   if (currentLevel === 1) {
-    goalText = "Goal: Use a red block to reach the sunshard";
+    goalText = "Goal: Use a red block to reach the sun shard";
   } else if (currentLevel === 2) {
-    goalText = "Goal: Level2";
+    goalText = "Goal: Get the sun shard!";
   } else if (currentLevel === 3) {
-    goalText = "Goal:Level3";
+    goalText = "Goal: Get the sun shard!";
   } else if (currentLevel === 4) {
     goalText = "Goal:Level3";
   } else if (currentLevel === 5) {
@@ -1116,7 +1115,7 @@ function animate() {
 	// Game complete state
 	else if (gameState === "complete") {
 		// Just handle restart input
-		if (pressedKeys[7]) { // Assuming 'r' key is mapped to index 7
+		if (pressedKeys[9]) { // Assuming 'r' key is mapped to index 9
 			currentLevel = 1;
 			initializeLevel(1);
 			
@@ -1179,6 +1178,9 @@ function onKeyPress(event) {
 		case 'x':
 			pressedKeys[8] = true;
 			break;
+		case 'r':
+			pressedKeys[9] = true;
+			break;
 		default:
 			console.log(`Key ${event.key} pressed`);
 	}
@@ -1212,6 +1214,9 @@ function onKeyRelease(event) {
 			break;
 		case 'x':
 			pressedKeys[8] = false;
+			break;
+		case 'r':
+			pressedKeys[9] = false;
 			break;
 	}
 }
