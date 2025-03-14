@@ -322,7 +322,7 @@ let isJumping = false;
 let onGround = false;
 const gravity = 0.02;
 const gravity1 = 0.004;
-const jumpVelocity = 0.5;
+const jumpVelocity = 0.4;
 //0=W, 1=A, 2=S, 3=D, 4=Q, 5=E
 let pressedKeys = [false, false, false, false, false, false];
 const hakkunA = 0.003; //vertical acceleration
