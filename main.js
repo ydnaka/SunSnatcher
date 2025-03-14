@@ -307,7 +307,7 @@ const levelConfigurations = [
   // Level 1
   {
     hakkunStartPosition: { x: 0, y: 4, z: 0 }, // Start near the shard
-    blockPositions: [ {x: -2, y: 0.61, z: -3}],
+    blockPositions: [ {x: -2, y: 0.61, z: -3}, {x: 4, y: 0.61, z: -3} ],
     potPosition: { x: 0, y: 0, z: 3 }, 
     potColor: 0xff0000, 
     sunPosition: { x: 1, y: 10, z: 3 }, 
@@ -329,7 +329,7 @@ const levelConfigurations = [
   // Level 2
   {
     hakkunStartPosition: { x: 0, y: 4, z: 12 },
-    blockPositions: [],
+    blockPositions: [{x: 4, y: 0.61, z: -3}],
     potPosition: { x: 0, y: 0, z: 3 }, 
     potColor: 0xffff00, 
     sunPosition: { x: 1, y: 4, z: 3 }, 
@@ -352,7 +352,7 @@ const levelConfigurations = [
   // Level 3
   {
     hakkunStartPosition: { x: -5, y: 4, z: 5 },
-    blockPositions: [],
+    blockPositions: [{x: 5, y: 1.61, z: -5}],
     potPosition: { x: 0, y: 0, z: 3 }, 
     potColor: 0x0000ff, 
     sunPosition: { x: 7, y: 4, z: -2 }, 
@@ -525,13 +525,6 @@ const hakkunA = 0.003;
 let shardPos = [levelConfigurations[currentLevel - 1].sunPosition.x,
 			      levelConfigurations[currentLevel - 1].sunPosition.y,
 				  levelConfigurations[currentLevel - 1].sunPosition.z];
-
-function createBlock(material, x, y, z) {
-	const cube = new THREE.Mesh(cube_geometry, material);
-	cube.position.set(x, y, z)
-	scene.add(cube);
-	return cube;
-}
 
 /* Block motion functions */
 
