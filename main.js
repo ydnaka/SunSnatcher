@@ -55,6 +55,12 @@ blueBrickTexture.wrapS = THREE.RepeatWrapping;
 blueBrickTexture.wrapT = THREE.RepeatWrapping;
 blueBrickTexture.repeat.set(0.5,0.5);
 
+//sun shard texture
+const sunTexture = new THREE.TextureLoader().load('textures/sun.png');
+sunTexture.wrapS = THREE.RepeatWrapping;
+sunTexture.wrapT = THREE.RepeatWrapping;
+sunTexture.repeat.set(0.5,0.5);
+
 // Setting up the lights
 
 /*const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -87,6 +93,7 @@ const grass_material = new THREE.MeshPhongMaterial({
 });
 const sun_material = new THREE.MeshBasicMaterial({
     color: 0xff8800, // orange-ish color
+	map: sunTexture
 });
 
 //Blocks have a size of 1.2x1.2x1.2
@@ -407,6 +414,8 @@ function checkProximityAndInjectColor() {
 			const injectedColor = potMaterial.color.getHex();
 			block_wire.material.color.set(injectedColor);
 			//switchToMesh();
+			//hakkun_body_material.transparent = !hakkun_body_material.transparent;
+			//hakkun_head_material.transparent = !hakkun_body_material.transparent;
 		}
     }
 	else {
