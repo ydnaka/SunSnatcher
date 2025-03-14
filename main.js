@@ -911,9 +911,24 @@ function checkLevelCompletion() {
 }
 
 function completeLevel() {
-  gameState = "transition";
-  transitionTimer = transitionDuration
+  if (currentLevel === 3) { 
+    gameState = "complete";
+
+    const transitionScreen = document.getElementById('transitionScreen');
+    if (transitionScreen) {
+      transitionScreen.style.display = 'none';
+    }
+
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    if (gameOverScreen) {
+      gameOverScreen.style.display = 'flex';
+    }
+  } else {
+    gameState = "transition";
+    transitionTimer = transitionDuration;
+  }
 }
+
 
 //When this is called, the camera will center on Hakkun
 function centerOnHakkun() {
