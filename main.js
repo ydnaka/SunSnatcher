@@ -625,9 +625,7 @@ function animate() {
 		onGround = true;
 		isJumping = false;
 	}
-	console.log(pressedKeys[6], onGround);
 	if (pressedKeys[6] && onGround) {
-		console.log("yo");
 		isJumping = true;
 		onGround = false;
 		hakkunYV = jumpVelocity;
