@@ -2,13 +2,10 @@
 //Project by Andy Kasbarian, Dean Ali, Htet Min Khant, and Jack Criminger
 //For CS 174A - Winter 2025
 
+//NOTE: Please run the project with a refresh rate of 60 Hz.
+//Other configurations will cause unwanted effects
+
 /* To be done:
- - Finish concrete material and create concrete blocks
- - Allow collision with concrete blocks
- - Slow down Hakkun & his jumps
- - Smoother camera controls (see Assignment 4)
- - Block motion offset by their creation time
- - WASD changes Hakkun's facing direction
  - Implement levels!
 */
 
@@ -136,10 +133,6 @@ const grass_material = new THREE.MeshPhongMaterial({
 const sun_material = new THREE.MeshBasicMaterial({
     color: 0xff8800, // orange-ish color
 	map: sunTexture
-});
-//WIP - Concrete material, for noninteractable level geometry
-const concrete_material = new THREE.MeshPhongMaterial({
-	color: 0x404040
 });
 
 /* Create scene objects */
@@ -307,10 +300,10 @@ const levelConfigurations = [
   // Level 1
   {
     hakkunStartPosition: { x: 0, y: 4, z: 0 }, // Start near the shard
-    blockPositions: [ {x: -2, y: 0.61, z: -3}, {x: 4, y: 0.61, z: -3} ],
+    blockPositions: [ {x: -2, y: 0.61, z: -1, color: "white"}, {x: 4, y: 0.61, z: -3, color: "red"} ],
     potPosition: { x: 0, y: 0, z: 3 }, 
     potColor: 0xff0000, 
-    sunPosition: { x: 1, y: 10, z: 3 }, 
+    sunPosition: { x: 1, y: 10, z: 0 }, 
 
     goalCondition: function() {
         // Check distance between Hakkun and the sun shard
@@ -329,7 +322,7 @@ const levelConfigurations = [
   // Level 2
   {
     hakkunStartPosition: { x: 0, y: 4, z: 12 },
-    blockPositions: [{x: 4, y: 0.61, z: -3}],
+    blockPositions: [{x: 4, y: 0.61, z: -3, color: "white"}],
     potPosition: { x: 0, y: 0, z: 3 }, 
     potColor: 0xffff00, 
     sunPosition: { x: 1, y: 4, z: 3 }, 
@@ -352,7 +345,7 @@ const levelConfigurations = [
   // Level 3
   {
     hakkunStartPosition: { x: -5, y: 4, z: 5 },
-    blockPositions: [{x: 5, y: 1.61, z: -5}],
+    blockPositions: [{x: 4, y: 0.61, z: -3, color: "white"}, {x: 5, y: 1.61, z: -5, color: "white"}, {x: 4, y: 8, z: 1, color: "yellow"}],
     potPosition: { x: 0, y: 0, z: 3 }, 
     potColor: 0x0000ff, 
     sunPosition: { x: 7, y: 4, z: -2 }, 
@@ -434,7 +427,7 @@ const potBody = new THREE.Mesh(potBodyGeometry, potMaterial);
 const potRim = new THREE.Mesh(potRimGeometry, potMaterial);
 
 potRim.position.y = 0.35;
-
+//The pot is always the same pot on scene. We just change its color and position
 const pot = new THREE.Group();
 pot.add(potBody);
 pot.add(potRim);
@@ -531,82 +524,118 @@ function yellow_move(yellowblock, startTime, startX, startY, startZ) {
 	let t = (animation_time - startTime);
 	let Range = 2;
 	yellowblock.position.x = startX - (Range) * (1 - Math.cos(Math.PI * t / 2));
-	yellowblock.position.y = startY + 1.6 + (Range) * (1 - Math.cos(Math.PI * t / 2));
-	yellowblock.position.z = startZ - 0.6;
+	yellowblock.position.y = startY + (Range) * (1 - Math.cos(Math.PI * t / 2));
+	yellowblock.position.z = startZ;
 }
 function red_move(redblock, startTime, startX, startY, startZ) {
 	let t = (animation_time - startTime);
 	let Range = 2;
 	redblock.position.x = startX;
-	redblock.position.y = startY + + 1.6 + (Range) * (1 - Math.cos(Math.PI * t / 2));
-	redblock.position.z = startZ - 0.6;
+	redblock.position.y = startY + (Range) * (1 - Math.cos(Math.PI * t / 2));
+	redblock.position.z = startZ;
 }
 function blue_move(blueblock, startTime, startX, startY, startZ) {
 	let t = (animation_time - startTime);
-	let Range = 2;
-	blueblock.position.x = startX + (Range) * (1 - Math.cos(Math.PI * t / 2));
-	blueblock.position.y = startY + 1.6;
-	blueblock.position.z = startZ - 0.6;
+	let Range = 4;
+	blueblock.position.x = startX + (Range) * (1 - Math.cos(Math.PI * t / 3));
+	blueblock.position.y = startY;
+	blueblock.position.z = startZ;
 }
 
+//Defines what color block has which move function
 const colorReference = {
 	"yellow": yellow_move,
 	"red": red_move,
 	"blue": blue_move
 };
 
-const block_wire = new THREE.LineSegments(wirecube_geometry);
-block_wire.position.set(-2, 0.61, -1);
-scene.add(block_wire);
+// The distance threshold for blocks and pots
+const blockDistanceThreshold = 1.5;
+const potDistanceThreshold = 0.5;
 
-const block_solid = new THREE.Mesh(cube_geometry, new THREE.MeshPhongMaterial({
-	color: 0xffffff,
-	shininess: 100
-}));
-block_solid.position.copy(block_wire.position);
-block_solid.visible = false;
-
-const convertedBlocks = [];
-
-let blockIsSolid = false;
-
-let blockColor;
+//This is the array of blocks
+let blocks = []
+//This array contains all solid/colored blocks
+let convertedBlocks = [];
+//This is the index of the block with proximity to Hakkun
+let closeBlockID = -1; //-1 means no block
+//This function should be called every time a level is initialized
+function blocksInitialize(levelID) {
+	for (let i = 0; i < blocks.length; i++) {
+		scene.remove(blocks[i].wire);
+		delete blocks[i].wire;
+		scene.remove(blocks[i].solid);
+		delete blocks[i].solid;
+	}
+	blocks = [];
+	convertedBlocks = [];
+	closeBlockID = -1;
+	for (let i = 0; i < levelConfigurations[levelID].blockPositions.length; i++){
+		const color = levelConfigurations[levelID].blockPositions[i].color;
+		const block_wire = new THREE.LineSegments(wirecube_geometry);
+		block_wire.position.set(levelConfigurations[levelID].blockPositions[i].x,
+								levelConfigurations[levelID].blockPositions[i].y,
+								levelConfigurations[levelID].blockPositions[i].z);
+		scene.add(block_wire);
+		const block_solid = new THREE.Mesh(cube_geometry, new THREE.MeshPhongMaterial({
+			color: 0xffffff,
+			shininess: 100
+		}));
+		block_solid.position.copy(block_wire.position);
+		block_solid.visible = false;
+		
+		blocks.push({wire: block_wire, solid: block_solid, isSolid: false, color: color });
+		if (color != "white") {
+			let hexColor;
+			if (color == "red") { hexColor = 0xff0000; }
+			else if (color == "yellow") { hexColor = 0xffff00; }
+			else if (color == "blue") { hexColor = 0x0000ff; }
+			blocks[i].wire.material.color.setHex(hexColor);
+			closeBlockID = i;
+			switchToSolid();
+		}
+	}
+}
 
 let musicStarted = false;
 
+//This function switches a block from wireframe to solid when a color is injected
 function switchToSolid() {
-	if (!blockIsSolid) {
+	if (closeBlockID != -1 && !blocks[closeBlockID].isSolid) {
+		blocks[closeBlockID].solid.position.copy(blocks[closeBlockID].wire.position);
+		blocks[closeBlockID].solid.material.color.copy(blocks[closeBlockID].wire.material.color);
 
-		block_solid.position.copy(block_wire.position);
+		scene.add(blocks[closeBlockID].solid);
 
-		block_solid.material.color.copy(block_wire.material.color);
+		blocks[closeBlockID].wire.visible = false;
+		blocks[closeBlockID].solid.visible = true;
 
-		scene.add(block_solid);
+		blocks[closeBlockID].isSolid = true;
 
-		block_wire.visible = false;
-		block_solid.visible = true;
-
-		blockIsSolid = true;
-
-		const colorHex = block_solid.material.color.getHex();
+		const colorHex = blocks[closeBlockID].solid.material.color.getHex();
 		if (colorHex === 0xff0000) {
-			blockColor = "red";
+			blocks[closeBlockID].solid.material = red_material;
+			blocks[closeBlockID].color = "red";
 		} else if (colorHex === 0xffff00) {
-			blockColor = "yellow";
+			blocks[closeBlockID].solid.material = yellow_material;
+			blocks[closeBlockID].color = "yellow";
 		} else if (colorHex === 0x0000ff) {
-			blockColor = "blue";
+			blocks[closeBlockID].solid.material = blue_material;
+			blocks[closeBlockID].color = "blue";
 		}
 
 		convertedBlocks.push({
-			block: block_solid,
+			blockId: closeBlockID,
 			mimicking: true,
-			originalPosition: block_solid.position.clone(),
+			originalPosition: blocks[closeBlockID].solid.position.clone(),
 			startTime: animation_time,
-			fixedY: block_solid.position.y
+			fixedY: blocks[closeBlockID].solid.position.y
 		});
 	}
 }
 
+//We won't be switching any blocks to wireframe, so this isn't needed
+/*
 function switchToWireframe() {
 	if (blockIsSolid) {
 
@@ -626,13 +655,11 @@ function switchToWireframe() {
 		}
 	}
 }
+*/
 
 
-
-//Function used to absorb colors from the pots
+//Function used to absorb colors from the pot
 function checkProximityAndAbsorbColor() {
-	//Distance between Hakkun and Pot must be less than 0.5 units
-	const distanceThreshold = 0.5;
 	//Get pot's position
 	const potPosition = pot.position;
 	//Calculate distance
@@ -643,7 +670,7 @@ function checkProximityAndAbsorbColor() {
 	);
 	
 	//If the distance is within the threshold
-	if (distance < distanceThreshold) {
+	if (distance < potDistanceThreshold) {
 		const potTopY = pot.position.y + 0.4;
 		//Make Hakkun stand on top of the pot
 		if (hakkunY <= potTopY) {
@@ -668,81 +695,85 @@ function checkProximityAndAbsorbColor() {
 
 //Function used to inject colors into blocks
 function checkProximityAndInjectColor() {
-	const distanceThreshold = 1.5;
-	
-	const blockPosition = blockIsSolid ? block_solid.position : block_wire.position;
-	const distance = Math.sqrt(
-		Math.pow(hakkunX - blockPosition.x, 2) +
-		Math.pow(hakkunY - blockPosition.y, 2) +
-		Math.pow(hakkunZ - blockPosition.z, 2)
-	);
-
-	if (distance < distanceThreshold) {
-		const blockTopY = blockPosition.y + 0.6;
-		if (hakkunY <= blockTopY && hakkunYV <= 0) {
-			hakkunY = blockTopY;
-			hakkunYV = 0;
-			onGround = true;
-			isJumping = false;
-			onBlock = true;
-			//If Hakkun isn't trying to get off the block, move him with the block
-			if (!(pressedKeys[0] || pressedKeys[1] || pressedKeys[2] || pressedKeys[3])){
-				hakkunX = blockPosition.x;
-				hakkunZ = blockPosition.z;
+	for (let i = 0; i < blocks.length; i++){
+		const blockPosition = blocks[i].isSolid ? blocks[i].solid.position : blocks[i].wire.position;
+		const distance = Math.sqrt(
+			Math.pow(hakkunX - blockPosition.x, 2) +
+			Math.pow(hakkunY - blockPosition.y, 2) +
+			Math.pow(hakkunZ - blockPosition.z, 2)
+		);
+		if (distance < blockDistanceThreshold) {
+			closeBlockID = i;
+			const blockTopY = blockPosition.y + 0.6;
+			if (hakkunY <= blockTopY && hakkunYV <= 0) {
+				hakkunY = blockTopY;
+				hakkunYV = 0;
+				onGround = true;
+				isJumping = false;
 			}
-		}
 
-		if (pressedKeys[8]) {
-			const injectedColor = hakkun_head.material.color.getHex();
-			if (injectedColor != 0xFFFFFF) {
-				if (blockIsSolid) {
+			if (pressedKeys[8]) {
+				const injectedColor = hakkun_head.material.color.getHex();
+				if (injectedColor != 0xFFFFFF) {
+					if (blocks[i].isSolid) {
+						blocks[i].solid.material.color.setHex(injectedColor);
+					} else {
+						blocks[i].wire.material.color.setHex(injectedColor);
+						switchToSolid();
+					}
 
-					block_solid.material.color.setHex(injectedColor);
-				} else {
-
-					block_wire.material.color.setHex(injectedColor);
-					switchToSolid();
-				}
-
-				const colorHex = injectedColor;
-				if (colorHex === 0xff0000) {
-					block_solid.material = red_material;
-					blockColor = "red";
-				} else if (colorHex === 0xffff00) {
-					block_solid.material = yellow_material;
-					blockColor = "yellow";
-				} else if (colorHex === 0x0000ff) {
-					block_solid.material = blue_material;
-					blockColor = "blue";
+					const colorHex = injectedColor;
+					if (colorHex === 0xff0000) {
+						blocks[i].color = "red";
+					} else if (colorHex === 0xffff00) {
+						blocks[i].color = "yellow";
+					} else if (colorHex === 0x0000ff) {
+						blocks[i].color = "blue";
+					}
 				}
 			}
 		}
-	}
-	else {
-		onBlock = false;
+		else {
+			onBlock = false;
+		}
 	}
 }
 
 function updateConvertedBlocksPositions() {
 	for (let i = 0; i < convertedBlocks.length; i++) {
 		const blockData = convertedBlocks[i];
-
-		const colorType = blockData.block.color;
-		if (colorType === 0xff0000) {
-			let blockColor = "red";
-		} else if (colorType === 0xffff00) {
-			let blockColor = "yellow";
-		} else if (colorType === 0x0000ff) {
-			let blockColor = "blue";
+		const block = blocks[blockData.blockId];
+		const distance = Math.sqrt(
+			Math.pow(hakkunX - block.solid.position.x, 2) +
+			Math.pow(hakkunY - block.solid.position.y, 2) +
+			Math.pow(hakkunZ - block.solid.position.z, 2)
+		);
+		//If Hakkun isn't trying to get off the block, move him with the block
+		if (distance < blockDistanceThreshold && !(pressedKeys[0] || pressedKeys[1] || pressedKeys[2] || pressedKeys[3])){
+			onBlock = true;
+			hakkunX = block.solid.position.x;
+			hakkunZ = block.solid.position.z;
 		}
-		if (blockColor && colorReference[blockColor]) {
-			const referenceFunction = colorReference[blockColor];
+		else{
+			onBlock = false;
+		}
+
+		const colorType = block.color;
+		if (colorType === 0xff0000) {
+			block.color = "red";
+		} else if (colorType === 0xffff00) {
+			block.color = "yellow";
+		} else if (colorType === 0x0000ff) {
+			block.color = "blue";
+		}
+		if (block.color && colorReference[block.color]) {
+			const referenceFunction = colorReference[block.color];
 
 			const offsetX = blockData.originalPosition.x;
-			const offsetZ = blockData.originalPosition.y;
-			const offsetY = blockData.originalPosition.z;
+			const offsetY = blockData.originalPosition.y;
+			const offsetZ = blockData.originalPosition.z;
 			
-			referenceFunction(blockData.block, blockData.startTime, offsetX, offsetY, offsetZ);
+			referenceFunction(block.solid, blockData.startTime, offsetX, offsetY, offsetZ);
 		}
 	}
 }
@@ -892,6 +923,9 @@ function initializeLevel(levelIndex) {
 				 levelConfig.potPosition.z);
   potMaterial.color.set(levelConfig.potColor);
   
+  //Initialize blocks
+  blocksInitialize(levelIndex - 1);
+  
   // Update the level display UI immediately
   const levelDisplay = document.getElementById('levelDisplay');
   if (levelDisplay) {
@@ -902,6 +936,7 @@ function initializeLevel(levelIndex) {
   gameState = "playing";
 }
 
+initializeLevel(1);
 
 function checkLevelCompletion() {
   if (gameState !== "playing") return;
