@@ -20,12 +20,6 @@ import { shininess } from 'three/tsl';
 
 //Creates the scene for our project
 const scene = new THREE.Scene();
-//Loads the sky texture
-const sky_texture = new THREE.TextureLoader().load("textures/background.png");
-//Sets the scene's background to the sky texture
-scene.background = sky_texture;
-//Sets the background intensity to 0.2 to make it more dim
-scene.backgroundIntensity = 0.2;
 
 //The camera and renderer are necessary to render our scene
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -45,7 +39,7 @@ controls.target.set(0, 5, 0);
 //Sets our current level to 1
 let currentLevel = 1;
 //We have 10 levels, so the maximum level is 10
-let maxLevels = 3;
+let maxLevels = 5;
 //The game state starts as "playing"
 //other gamestates are "transition" and "complete"
 let gameState = "playing";
@@ -139,7 +133,7 @@ const sun_material = new THREE.MeshBasicMaterial({
 
 //Ambient light - lights up everything even when there are no other light sources
 //This is so we can see in the dark
-const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
+const ambientLight = new THREE.AmbientLight(0x404040);  // Soft white light
 //Add the ambient light to the scene
 scene.add(ambientLight);
 
@@ -299,11 +293,14 @@ level.material.color.setRGB(0, 1, 0);
 const levelConfigurations = [
   // Level 1
   {
-    hakkunStartPosition: { x: 0, y: 4, z: 0 }, // Start near the shard
-    blockPositions: [ {x: -2, y: 0.61, z: -1, color: "white"}, {x: 4, y: 0.61, z: -3, color: "red"} ],
-    potPosition: { x: 0, y: 0, z: 3 }, 
+    hakkunStartPosition: { x: -2, y: 1, z: 14 },
+	hakkunStartAngle: 0,
+    blockPositions: [ {x: -3, y: 0.61, z: 1, color: "white"} ],
+    potPosition: { x: 0, y: 0, z: 9 }, 
     potColor: 0xff0000, 
-    sunPosition: { x: 1, y: 10, z: 0 }, 
+    sunPosition: { x: -3, y: 10, z: -2 },
+	levelLighting: 0x303030,
+	levelBackground: "textures/background.png",
 
     goalCondition: function() {
         // Check distance between Hakkun and the sun shard
@@ -321,11 +318,15 @@ const levelConfigurations = [
   
   // Level 2
   {
-    hakkunStartPosition: { x: 0, y: 4, z: 12 },
-    blockPositions: [{x: 4, y: 0.61, z: -3, color: "white"}],
-    potPosition: { x: 0, y: 0, z: 3 }, 
-    potColor: 0xffff00, 
-    sunPosition: { x: 1, y: 4, z: 3 }, 
+    hakkunStartPosition: { x: -2, y: 1, z: 13 },
+	hakkunStartAngle: 0,
+    blockPositions: [ {x: 0, y: 0.61, z: 0, color: "red"},
+	                  {x: 0, y: 6.61, z: -2, color: "white"}],
+    potPosition: { x: -5, y: 0, z: 4 }, 
+    potColor: 0x0000ff, 
+    sunPosition: { x: 10 , y: 8, z: -2 },
+	levelLighting: 0x505050,
+	levelBackground: "textures/background2.png",
 
     goalCondition: function() {
         // Check distance between Hakkun and the sun shard
@@ -344,11 +345,26 @@ const levelConfigurations = [
   
   // Level 3
   {
-    hakkunStartPosition: { x: -5, y: 4, z: 5 },
-    blockPositions: [{x: 4, y: 0.61, z: -3, color: "white"}, {x: 5, y: 1.61, z: -5, color: "white"}, {x: 4, y: 8, z: 1, color: "yellow"}],
-    potPosition: { x: 0, y: 0, z: 3 }, 
+	hakkunStartPosition: { x: -11.25, y: 17, z: 0 },
+	hakkunStartAngle: 1.56,
+    blockPositions: [{x: -8, y: 15.61, z: 0, color: "white"},
+	                 {x: 0, y: 15.61, z: 1.25, color: "white"},
+					 {x: 8, y: 15.61, z: 0, color: "white"},
+					 //Platform
+					 {x: -12.5, y: 15.61, z: -1.25, color: "white"},
+					 {x: -11.25, y: 15.61, z: -1.25, color: "white"},
+					 {x: -10, y: 15.61, z: -1.25, color: "white"},
+					 {x: -12.5, y: 15.61, z: 0, color: "white"},
+					 {x: -11.25, y: 15.61, z: 0, color: "white"},
+					 {x: -10, y: 15.61, z: 0, color: "white"},
+					 {x: -12.5, y: 15.61, z: 1.25, color: "white"},
+					 {x: -11.25, y: 15.61, z: 1.25, color: "white"},
+					 {x: -10, y: 15.61, z: 1.25, color: "white"},],
+    potPosition: { x: -10, y: 16.25, z: -1.25 }, 
     potColor: 0x0000ff, 
-    sunPosition: { x: 7, y: 4, z: -2 }, 
+    sunPosition: { x: 17, y: 18, z: 0 }, 
+	levelLighting: 0x808080,
+	levelBackground: "textures/background3.png",
 
     goalCondition: function() {
         // Check distance between Hakkun and the sun shard
@@ -361,48 +377,94 @@ const levelConfigurations = [
     },
 
     message: "Level 3 complete! You have found the Sun Shard!"
-     
+    
   },
 
   // Level 4
   {
-    
+	hakkunStartPosition: { x: 27, y: 1, z: 12 },
+	hakkunStartAngle: -1.35,
+    blockPositions: [{x: 7, y: 0.61, z: 0, color: "white"},
+					 {x: -1, y: 6.61, z: 0, color: "white"},
+					 {x: -9, y: 12.61, z: 0, color: "white"}],
+    potPosition: { x: 15, y: 0, z: 3 }, 
+    potColor: 0xffff00, 
+    sunPosition: { x: -17, y: 21, z: 0 }, 
+	levelLighting: 0xB0B0B0,
+	levelBackground: "textures/background4.png",
+
+    goalCondition: function() {
+        // Check distance between Hakkun and the sun shard
+        const distance = Math.sqrt(
+            Math.pow(hakkunX - shardPos[0], 2) +
+            Math.pow(hakkunY - shardPos[1], 2) +
+            Math.pow(hakkunZ - shardPos[2], 2)
+        );
+        return distance < 1.5; // Complete level when close enough to the sun shard
+    },
+
+    message: "Level 4 complete! You have found the Sun Shard!"
      
   },
   
   // Level 5
   {
+	hakkunStartPosition: { x: -10, y: 17, z: 17.25 },
+	hakkunStartAngle: 0,
+    blockPositions: [{x: -10, y: 15.61, z: 17.25, color: "white"},
+					 {x: -10, y: 15.61, z: 16, color: "white"},
+					 {x: -10, y: 15.61, z: 14.75, color: "white"},
+					 {x: -10, y: 15.61, z: 13.5, color: "white"},
+					 {x: -10, y: 15.61, z: 12.25, color: "white"},
+					 {x: -10, y: 15.61, z: 11, color: "white"},
+					 //left path
+					 {x: -11.25, y: 15.61, z: 11, color: "white"},
+					 {x: -12.5, y: 15.61, z: 11, color: "white"},
+					 {x: -13.75, y: 15.61, z: 11, color: "white"},
+					 {x: -13.75, y: 15.61, z: 9.75, color: "white"},
+					 {x: -13.75, y: 15.61, z: 8.5, color: "white"},
+					 {x: -13.75, y: 15.61, z: 7.25, color: "white"},
+					 //platform with pot
+					 {x: -15, y: 15.61, z: 6, color: "white"},
+					 {x: -13.75, y: 15.61, z: 6, color: "white"},
+					 {x: -12.5, y: 15.61, z: 6, color: "white"},
+					 {x: -15, y: 15.61, z: 4.75, color: "white"},
+					 {x: -13.75, y: 15.61, z: 4.75, color: "white"},
+					 {x: -12.5, y: 15.61, z: 4.75, color: "white"},
+					 {x: -15, y: 15.61, z: 3.5, color: "white"},
+					 {x: -13.75, y: 15.61, z: 3.5, color: "white"},
+					 {x: -12.5, y: 15.61, z: 3.5, color: "white"},
+					 //Right path
+					 {x: -8.75, y: 15.61, z: 11, color: "white"},
+					 {x: -7.5, y: 15.61, z: 11, color: "white"},
+					 {x: -6.25, y: 15.61, z: 11, color: "white"},
+					 {x: -6.25, y: 15.61, z: 9.75, color: "white"},
+					 {x: -6.25, y: 15.61, z: 8.5, color: "white"},
+					 {x: -6.25, y: 15.61, z: 7.25, color: "white"},
+					 {x: -6.25, y: 15.61, z: 6, color: "white"},
+					 //Moving block
+					 {x: -6.25, y: 15.61, z: 4, color: "red"},
+					 {x: -6.25, y: 21.61, z: 2, color: "white"}],
+    potPosition: { x: -13.75, y: 16.25, z: 4.75 }, 
+    potColor: 0xffff00, 
+    sunPosition: { x: -13.5, y: 27, z: 1 }, 
+	levelLighting: 0xFFFFFF,
+	levelBackground: "textures/background5.png",
+
+    goalCondition: function() {
+        // Check distance between Hakkun and the sun shard
+        const distance = Math.sqrt(
+            Math.pow(hakkunX - shardPos[0], 2) +
+            Math.pow(hakkunY - shardPos[1], 2) +
+            Math.pow(hakkunZ - shardPos[2], 2)
+        );
+        return distance < 1.5; // Complete level when close enough to the sun shard
+    },
+
+    message: "Level 5 complete! You have found the Sun Shard!"
     
   },
 
-  // Level 6
-  {
-    
-     
-  },
-  
-  // Level 7
-  {
-    
-  },
-
-  // Level 8
-  {
-    
-     
-  },
-  
-  // Level 9
-  {
-    
-  },
-
-  // Level 10
-  {
-    
-     
-  },
-  
 ];
 
 //Declare SunShard
@@ -507,7 +569,7 @@ let onBlock = false;
 const gravity = 0.02;
 const gravity1 = 0.004;
 //Hakkun's Jump velocity
-const jumpVelocity = 0.4;
+const jumpVelocity = 0.3;
 
 // W, A, S, D, Q, E, "space", c, x
 let pressedKeys = [false, false, false, false, false, false, false, false, false, false];
@@ -522,14 +584,14 @@ let shardPos = [levelConfigurations[currentLevel - 1].sunPosition.x,
 
 function yellow_move(yellowblock, startTime, startX, startY, startZ) {
 	let t = (animation_time - startTime);
-	let Range = 2;
+	let Range = 3;
 	yellowblock.position.x = startX - (Range) * (1 - Math.cos(Math.PI * t / 2));
 	yellowblock.position.y = startY + (Range) * (1 - Math.cos(Math.PI * t / 2));
 	yellowblock.position.z = startZ;
 }
 function red_move(redblock, startTime, startX, startY, startZ) {
 	let t = (animation_time - startTime);
-	let Range = 2;
+	let Range = 3;
 	redblock.position.x = startX;
 	redblock.position.y = startY + (Range) * (1 - Math.cos(Math.PI * t / 2));
 	redblock.position.z = startZ;
@@ -550,7 +612,7 @@ const colorReference = {
 };
 
 // The distance threshold for blocks and pots
-const blockDistanceThreshold = 1.5;
+const blockDistanceThreshold = 1.2;
 const potDistanceThreshold = 0.5;
 
 //This is the array of blocks
@@ -754,9 +816,6 @@ function updateConvertedBlocksPositions() {
 			hakkunX = block.solid.position.x;
 			hakkunZ = block.solid.position.z;
 		}
-		else{
-			onBlock = false;
-		}
 
 		const colorType = block.color;
 		if (colorType === 0xff0000) {
@@ -809,7 +868,6 @@ function createUIElements() {
   levelDisplay.innerHTML = `Level: ${currentLevel}/${maxLevels}`;
   uiContainer.appendChild(levelDisplay);
   
-  
   // Create goals display
   const goalsDisplay = document.createElement('div');
   goalsDisplay.id = 'goalsDisplay';
@@ -824,6 +882,28 @@ function createUIElements() {
   goalsDisplay.style.maxWidth = '300px';
   updateGoalsDisplay();
   uiContainer.appendChild(goalsDisplay);
+  
+  // Create start screen
+  const startScreen = document.createElement('div');
+  startScreen.id = 'startScreen';
+  startScreen.style.width = '100%';
+  startScreen.style.height = '100%';
+  startScreen.style.backgroundColor = 'rgba(50, 20, 90, 0.57)';
+  startScreen.style.color = 'white';
+  startScreen.style.display = 'none';
+  startScreen.style.flexDirection = 'column';
+  startScreen.style.justifyContent = 'center';
+  startScreen.style.alignItems = 'center';
+  startScreen.style.fontFamily = 'Arial, sans-serif';
+  startScreen.style.fontSize = '32px';
+  startScreen.style.textAlign = 'center';
+  startScreen.innerHTML = '<div>Sun Snatcher</div> \
+  <div style="margin-top: 20px; font-size: 24px;">Collect Sun Shards to restore \
+  the Sun and light up the world.<br><br>Controls:<br>WASD - move Hakkun<br>\
+  Q/E - rotate camera left/right<br>C - absorb color<br>X - inject color<br>\
+  Mouse (orbit controls) - look around level<br>R - reset level<br><br>\
+  Press any key to start the game</div>';
+  uiContainer.appendChild(startScreen);
   
   // Create transition screen
   const transitionScreen = document.createElement('div');
@@ -847,7 +927,7 @@ function createUIElements() {
   gameOverScreen.id = 'gameOverScreen';
   gameOverScreen.style.width = '100%';
   gameOverScreen.style.height = '100%';
-  gameOverScreen.style.backgroundColor = 'rgba(196, 25, 25, 0.8)';
+  gameOverScreen.style.backgroundColor = 'rgba(25, 196, 25, 0.8)';
   gameOverScreen.style.color = 'white';
   gameOverScreen.style.display = 'none';
   gameOverScreen.style.flexDirection = 'column';
@@ -870,25 +950,15 @@ function updateGoalsDisplay() {
   let goalText = "Goal: Unknown"; // Default in case of an issue
 
   if (currentLevel === 1) {
-    goalText = "Goal: Use a red block to reach the sun shard";
+    goalText = "Hint: Red blocks move upward";
   } else if (currentLevel === 2) {
-    goalText = "Goal: Get the sun shard!";
+    goalText = "Hint: Blue blocks move sideways";
   } else if (currentLevel === 3) {
-    goalText = "Goal: Get the sun shard!";
+    goalText = "Hint: Don't fall!";
   } else if (currentLevel === 4) {
-    goalText = "Goal:Level3";
+    goalText = "Hint: 'R' is your friend";
   } else if (currentLevel === 5) {
-    goalText = "Goal:Level3";
-  }else if (currentLevel === 6) {
-    goalText = "Goal:Level3";
-  }else if (currentLevel === 7) {
-    goalText = "Goal:Level3";
-  }else if (currentLevel === 8) {
-    goalText = "Goal:Level3";
-  }else if (currentLevel === 9) {
-    goalText = "Goal:Level3";
-  }else if (currentLevel === 10) {
-    goalText = "Goal:Level3";
+    goalText = "Hint: Tread carefully!";
   }
 
   goalsDisplay.innerHTML = goalText;
@@ -905,13 +975,31 @@ function initializeLevel(levelIndex) {
   hakkunX = levelConfig.hakkunStartPosition.x;
   hakkunY = levelConfig.hakkunStartPosition.y;
   hakkunZ = levelConfig.hakkunStartPosition.z;
-  hakkunAngle = 0;
+  hakkunAngle = levelConfig.hakkunStartAngle;
   hakkunXV = 0;
   hakkunZV = 0;
   hakkunYV = 0;
   isJumping = false;
   onGround = false;
-
+  
+  //Initialize ambient lighting
+  ambientLight.color.setHex(levelConfig.levelLighting);
+  
+  //Loads the sky texture
+  const sky_texture = new THREE.TextureLoader().load(levelConfig.levelBackground);
+  //Sets the scene's background to the sky texture
+  scene.background = sky_texture;
+  //Sets the background intensity to 0.2 to make it more dim
+  if (currentLevel == 5) {
+	scene.backgroundIntensity = 1;  
+  }
+  else if (currentLevel == 4) {
+	scene.backgroundIntensity = 0.7;  
+  }
+  else {
+	scene.backgroundIntensity = 0.2;
+  }
+	
   //Place sun shard based on defined position in level
   shardPos = [levelConfig.sunPosition.x,
 			  levelConfig.sunPosition.y,
@@ -936,7 +1024,9 @@ function initializeLevel(levelIndex) {
   gameState = "playing";
 }
 
-initializeLevel(1);
+initializeLevel(currentLevel);
+const startScreen = document.getElementById('startScreen');
+startScreen.style.display = 'flex';
 
 function checkLevelCompletion() {
   if (gameState !== "playing") return;
@@ -948,7 +1038,7 @@ function checkLevelCompletion() {
 }
 
 function completeLevel() {
-  if (currentLevel === 3) { 
+  if (currentLevel === maxLevels) { 
     gameState = "complete";
 
     const transitionScreen = document.getElementById('transitionScreen');
@@ -965,7 +1055,6 @@ function completeLevel() {
     transitionTimer = transitionDuration;
   }
 }
-
 
 //When this is called, the camera will center on Hakkun
 function centerOnHakkun() {
@@ -1009,6 +1098,11 @@ function animate() {
 			centerOnHakkun();
 		}
 
+		//Reset level
+		if (pressedKeys[9]) {
+			initializeLevel(currentLevel);
+		}
+		
 		//If Hakkun is below the world's ground level
 		if (hakkunY <= 0) {
 			//Snap him up to the ground
@@ -1028,7 +1122,7 @@ function animate() {
 		//HTML element to display Hakkun's position
 		const positionInfo = document.getElementById("positionInfo");
 		if (positionInfo) {
-			positionInfo.innerHTML = `Position: X: ${hakkunX.toFixed(2)}, Y: ${hakkunY.toFixed(2)}, Z: ${hakkunZ.toFixed(2)}`;
+			positionInfo.innerHTML = `Position: X: ${hakkunX.toFixed(2)}, Y: ${hakkunY.toFixed(2)}, Z: ${hakkunZ.toFixed(2)}, A:${hakkunAngle.toFixed(2)}`;
 		}
 
 		//Hakkun's rotation
@@ -1085,8 +1179,11 @@ function animate() {
 			hakkunDisplayAngle = (Math.PI / 4);
 		}
 
-		//Start music when W key is pressed
-		if (pressedKeys[0] && !musicStarted) {
+		//Start the game and the music
+		if ((pressedKeys[0] || pressedKeys[1] || pressedKeys[2] || pressedKeys[3] ||
+			 pressedKeys[4] || pressedKeys[5] || pressedKeys[6] || pressedKeys[7] ||
+			 pressedKeys[8] || pressedKeys[9]) && !musicStarted) {
+			startScreen.style.display = 'none';
 			musicStarted = true;
 			const listener = new THREE.AudioListener();
 			camera.add(listener);

@@ -21,16 +21,18 @@ A - strafe left
 
 D - strafe right
 
+space - jump
+
 Q - turn camera to the left
 
 E - turn camera to the right
-
-V - grab block
-
-B - place block
 
 C - absorb color
 
 X - inject color
 
+Mouse left click & drag: rotate camera around focus
 
+Mouse right click & drag: move camera
+
+Mouse wheel - zoom in/out
